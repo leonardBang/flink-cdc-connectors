@@ -16,18 +16,21 @@
  * limitations under the License.
  */
 
-package com.alibaba.ververica.cdc.connectors.mysql.debezium;
+package com.alibaba.ververica.cdc.connectors.mysql.converter;
 
-import com.alibaba.ververica.cdc.connectors.mysql.source.split.MySQLSplit;
+import org.apache.flink.table.data.RowData;
 
-public interface SnapshotReaderCallBack {
+import java.io.Serializable;
 
-    void onSplitFinished(ReaderCallBackContext callBackContext);
+/**
+ * Converter that is responsible to convert between JDBC object and Flink SQL internal data
+ * structure {@link RowData}.
+ */
+public interface JdbcConverter extends Serializable {
 
-    public interface ReaderCallBackContext{
+    /** Convert {@link RowData} type object to JDBC object fields. */
+    Object[] toJdbcFields(RowData rowData);
 
-        MySQLSplit getSplit();
-
-
-    }
+    /** Convert JDBC object fields to {@link RowData} type object. */
+    RowData toRowData(Object[] jdbcFields);
 }

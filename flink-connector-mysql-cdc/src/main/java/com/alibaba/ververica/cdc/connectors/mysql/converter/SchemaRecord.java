@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-package com.alibaba.ververica.cdc.connectors.mysql.source.reader;
+package com.alibaba.ververica.cdc.connectors.mysql.converter;
 
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.RowType;
 
 /**
- * The output data of Source that supports schema evolution.
+ * The output data of Source that may support schema evolution.
  */
 public class SchemaRecord {
 
@@ -32,5 +32,13 @@ public class SchemaRecord {
     public SchemaRecord(RowType schema, RowData row) {
         this.schema = schema;
         this.row = row;
+    }
+
+    public RowType getSchema() {
+        return schema;
+    }
+
+    public RowData getRow() {
+        return row;
     }
 }

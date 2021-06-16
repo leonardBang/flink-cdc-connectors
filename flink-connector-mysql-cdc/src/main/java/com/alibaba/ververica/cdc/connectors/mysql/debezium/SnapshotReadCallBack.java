@@ -16,16 +16,26 @@
  * limitations under the License.
  */
 
-package com.alibaba.ververica.cdc.connectors.mysql.source.split;
+package com.alibaba.ververica.cdc.connectors.mysql.debezium;
+
+import com.alibaba.ververica.cdc.connectors.mysql.source.split.MySQLSplit;
+
+import java.util.Collection;
 
 /**
- * The types of MySQLSplit.
+ * Callback after the split finishes reading snapshot data from DB.
  */
-public enum MySQLSplitType {
+public interface SnapshotReadCallBack<T> {
 
-    /** The chunk of snapshot reading phase. */
-    SNAPSHOT,
+    void splitSnapshotFinished(CallBackContext<T> callBackContext);
 
-    /** The chunk of binlog reading phase. */
-    BINLOG
+    // Context for the Callback
+    interface CallBackContext<T>{
+
+        MySQLSplit getSplit();
+
+        Collection<T> getSplitData();
+
+        WatermarkInterval getWaterMarkInterval();
+    }
 }

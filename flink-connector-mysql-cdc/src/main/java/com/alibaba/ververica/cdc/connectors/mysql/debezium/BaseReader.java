@@ -36,11 +36,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import io.debezium.config.ConfigurationDefaults;
 import io.debezium.connector.base.ChangeEventQueueMetrics;
-import io.debezium.connector.mysql.AbstractReader;
+import io.debezium.connector.mysql.legacy.AbstractReader;
 import io.debezium.connector.mysql.HaltingPredicate;
-import io.debezium.connector.mysql.MySqlJdbcContext;
-import io.debezium.connector.mysql.MySqlTaskContext;
-import io.debezium.connector.mysql.Reader;
+import io.debezium.connector.mysql.legacy.MySqlJdbcContext;
+import io.debezium.connector.mysql.legacy.MySqlTaskContext;
+import io.debezium.connector.mysql.legacy.Reader;
 import io.debezium.time.Temporals;
 import io.debezium.util.Clock;
 import io.debezium.util.Metronome;

@@ -21,26 +21,36 @@ package com.alibaba.ververica.cdc.connectors.mysql.debezium;
 
 import com.alibaba.ververica.cdc.connectors.mysql.source.split.MySQLSplit;
 
+import io.debezium.connector.mysql.legacy.BinlogReader.BinlogPosition;
 import org.apache.kafka.connect.source.SourceRecord;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-import io.debezium.connector.mysql.BinlogReader;
 import io.debezium.connector.mysql.HaltingPredicate;
-import io.debezium.connector.mysql.MySqlTaskContext;
-import io.debezium.function.Callable;
+import io.debezium.connector.mysql.legacy.MySqlTaskContext;
 
 /**
- * A Debezium binlog reader that reads binlog and deal overlapping data with {@link com.alibaba.ververica.cdc.connectors.mysql.debezium.SnapshotSplitReader}.
+ * A Debezium binlog reader that reads binlog and deal overlapping data with {@link SnapshotSplitRead}.
  */
-public class SharedBinlogReader extends BaseReader implements Callable {
+public class SharedBinlogReader<T> extends BaseReader implements SnapshotReadCallBack<T> {
 
-    private BinlogReader.BinlogPosition currentBinlogPosition;
-    private HashSet<MySQLSplit> fetchedSplits;
+    private final int subTaskId;
+    private BinlogPosition currentOffset;
+    private Set<MySQLSplit> snapshotFinishedSplits;
 
-    public SharedBinlogReader(String name, MySqlTaskContext context, HaltingPredicate acceptAndContinue) {
+    public SharedBinlogReader(String name, MySqlTaskContext context, HaltingPredicate acceptAndContinue, int subTaskId) {
         super(name, context, acceptAndContinue);
+        this.subTaskId = subTaskId;
+        this.currentOffset = null;
+        this.snapshotFinishedSplits = new HashSet<>();
+    }
+
+    @Override
+    protected void doInitialize() {
+        super.doInitialize();
     }
 
     @Override
@@ -56,6 +66,31 @@ public class SharedBinlogReader extends BaseReader implements Callable {
     @Override
     protected void doCleanup() {
 
+    }
+
+    public void pause() {
+
+    }
+
+    public void resume() {
+
+    }
+
+    public void readToOffset(BinlogPosition toOffset, Collection<SourceRecord> output){
+        // read binlog and filter binglog for finished splits
+
+        currentOffset = toOffset;
+
+    }
+
+    public void readStreaming(Collection<SourceRecord> output){
+
+        // read binglog and filter for fnished splits
+
+    }
+
+    public BinlogPosition getCurrentOffset() {
+        return currentOffset;
     }
 
     @Override
@@ -74,7 +109,13 @@ public class SharedBinlogReader extends BaseReader implements Callable {
     }
 
     @Override
-    public void call() {
+    public void splitSnapshotFinished(CallBackContext<T> callBackContext) {
+
+        snapshotFinishedSplits.add(callBackContext.getSplit());
+
+        callBackContext.getSplit();
+        callBackContext.getSplitData();
+        callBackContext.getWaterMarkInterval();
 
     }
 }

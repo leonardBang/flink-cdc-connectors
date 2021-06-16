@@ -18,8 +18,10 @@
 
 package com.alibaba.ververica.cdc.connectors.mysql.source.enumerator;
 
+import com.alibaba.ververica.cdc.connectors.mysql.source.assigner.MySQLSplitAssigner;
 import com.alibaba.ververica.cdc.connectors.mysql.source.split.MySQLSplit;
 
+import org.apache.flink.api.connector.source.SourceEvent;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.slf4j.Logger;
@@ -73,8 +75,13 @@ public class MySQLSourceEnumerator implements SplitEnumerator<MySQLSplit, MySQLS
     }
 
     @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+
+    }
+
+    @Override
     public MySQLSourceEnumState snapshotState(long checkpointId) throws Exception {
-        return new MySQLSourceEnumState(splitAssigner.getCapturedTables(), splitAssigner.getAssignedTables(), splitAssigner.getRecycleSplits(), splitAssigner.getAssignedTableMaxSplit(), splitAssigner.getTableMaxPrimaryKey(), splitAssigner.getCurrentTableId());
+        return new MySQLSourceEnumState(splitAssigner.getAlreadyProcessedTables(), splitAssigner.remainingSplits());
     }
 
     @Override

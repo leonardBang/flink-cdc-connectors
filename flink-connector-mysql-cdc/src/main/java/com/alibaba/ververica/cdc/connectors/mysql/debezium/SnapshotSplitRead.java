@@ -35,9 +35,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-import io.debezium.connector.mysql.BinlogReader.BinlogPosition;
+import io.debezium.connector.mysql.legacy.BinlogReader.BinlogPosition;
+import io.debezium.connector.mysql.legacy.MySqlTaskContext;
 import io.debezium.connector.mysql.HaltingPredicate;
-import io.debezium.connector.mysql.MySqlTaskContext;
 import io.debezium.data.Envelope;
 import io.debezium.data.Envelope.Operation;
 import io.debezium.jdbc.JdbcConnection;
@@ -46,9 +46,9 @@ import io.debezium.schema.DatabaseSchema;
 /**
  * A snapshot reader that reads data from Table in split level, the split is assigned by primary key range.
  */
-public class SnapshotSplitReader extends BaseReader implements SnapshotReaderCallBack {
+public class SnapshotSplitRead extends BaseReader {
 
-    protected static final Logger logger = LoggerFactory.getLogger(SnapshotSplitReader.class);
+    protected static final Logger logger = LoggerFactory.getLogger(SnapshotSplitRead.class);
     private final SharedBinlogReader sharedBinlogReader;
     private JdbcConnection mysql;
     private MySQLSplit currentTableSplit;
@@ -61,7 +61,7 @@ public class SnapshotSplitReader extends BaseReader implements SnapshotReaderCal
     private Map<Struct, SourceRecord> windowBuffer = new LinkedHashMap<>();
     private DatabaseSchema databaseSchema;
 
-    public SnapshotSplitReader(String name, MySqlTaskContext context, HaltingPredicate acceptAndContinue, SharedBinlogReader sharedBinlogReader, MySQLSplit currentTableSplit) {
+    public SnapshotSplitRead(String name, MySqlTaskContext context, HaltingPredicate acceptAndContinue, SharedBinlogReader sharedBinlogReader, MySQLSplit currentTableSplit) {
         super(name, context, acceptAndContinue);
         this.sharedBinlogReader = sharedBinlogReader;
         this.currentTableSplit = currentTableSplit;
@@ -90,10 +90,6 @@ public class SnapshotSplitReader extends BaseReader implements SnapshotReaderCal
     protected void pollComplete(List<SourceRecord> batch) {
         //TODO
         batch =  null;
-    }
-
-    public void uponSplitFinished() throws Exception {
-        sharedBinlogReader.call();
     }
 
     @Override
@@ -197,9 +193,5 @@ public class SnapshotSplitReader extends BaseReader implements SnapshotReaderCal
         }
     }
 
-    @Override
-    public void onSplitFinished(ReaderCallBackContext callBackContext) {
-
-    }
 }
 

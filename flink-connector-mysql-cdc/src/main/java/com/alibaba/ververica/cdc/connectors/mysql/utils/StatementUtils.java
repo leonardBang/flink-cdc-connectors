@@ -16,9 +16,10 @@
  * limitations under the License.
  */
 
-package com.alibaba.ververica.cdc.connectors.mysql.debezium.utils;
+package com.alibaba.ververica.cdc.connectors.mysql.utils;
 
-import org.apache.flink.table.data.TimestampData;
+
+import org.apache.flink.table.types.logical.RowType;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -36,39 +37,39 @@ import io.debezium.relational.TableId;
  */
 public class StatementUtils {
 
-    public static String buildSplitBoundaryQuery(Table table, boolean isFirstSplit, int maxSplitSize) {
-        return buildSplitQuery(table, isFirstSplit, 1, true);
+    public static String buildSplitBoundaryQuery(TableId tableId, RowType pkRowType, boolean isFirstSplit, int maxSplitSize) {
+        return buildSplitQuery(tableId, pkRowType, isFirstSplit, 1, true);
     }
 
-    public static String buildSplitScanQuery(Table table, boolean isFirstSplit, int maxSplitSize) {
-        return buildSplitQuery(table, isFirstSplit, maxSplitSize, false);
+    public static String buildSplitScanQuery(TableId tableId, RowType pkRowType, boolean isFirstSplit, int maxSplitSize) {
+        return buildSplitQuery(tableId, pkRowType, isFirstSplit, maxSplitSize, false);
     }
 
-    private static String buildSplitQuery(Table table, boolean isFirstSplit, int limitSize, boolean onlyScanBoundary) {
+    private static String buildSplitQuery(TableId tableId, RowType pkRowType, boolean isFirstSplit, int limitSize, boolean onlyScanBoundary) {
         String condition = null;
         if (!isFirstSplit) {
             final StringBuilder sql = new StringBuilder();
             // Window boundaries
-            addPrimaryKeyColumnsToCondition(table, sql, " >= ?");
+            addPrimaryKeyColumnsToCondition(pkRowType, sql, " >= ?");
             sql.append(" AND NOT (");
-            addPrimaryKeyColumnsToCondition(table, sql, " = ?");
+            addPrimaryKeyColumnsToCondition(pkRowType, sql, " = ?");
             sql.append(")");
             // Table boundaries
             sql.append(" AND ");
-            addPrimaryKeyColumnsToCondition(table, sql, " <= ?");
+            addPrimaryKeyColumnsToCondition(pkRowType, sql, " <= ?");
             condition = sql.toString();
         }
-        final String orderBy = table.primaryKeyColumns().stream()
-            .map(Column::name)
+        final String orderBy = pkRowType.getFieldNames()
+            .stream()
             .collect(Collectors.joining(", "));
         if(onlyScanBoundary) {
-            return buildSelectWithRowLimits(table.id(),
+            return buildSelectWithRowLimits(tableId,
                 limitSize,
-                getPrimaryKeyColumnsProjection(table),
+                getPrimaryKeyColumnsProjection(pkRowType),
                 Optional.ofNullable(condition),
                 orderBy);
         } else {
-            return buildSelectWithRowLimits(table.id(),
+            return buildSelectWithRowLimits(tableId,
                 limitSize,
                 "*",
                 Optional.ofNullable(condition),
@@ -88,11 +89,14 @@ public class StatementUtils {
         return statement;
     }
 
-    public static String buildMaxPrimaryKeyQuery(Table table) {
-        final String orderBy = table.primaryKeyColumns().stream()
-            .map(Column::name)
+    public static String buildMaxPrimaryKeyQuery(TableId tableId, RowType pkRowType) {
+        final String orderBy = pkRowType.getFieldNames().stream()
             .collect(Collectors.joining(" DESC, ")) + " DESC";
-        return buildSelectWithRowLimits(table.id(), 1, "*", Optional.empty(), orderBy.toString());
+        return buildSelectWithRowLimits(tableId, 1, "*", Optional.empty(), orderBy.toString());
+    }
+
+    public static String quote(String dbOrTableName) {
+        return "`" + dbOrTableName + "`";
     }
 
     private static PreparedStatement initStatement(JdbcConnection jdbc, String sql, int fetchSize) throws SQLException {
@@ -102,22 +106,20 @@ public class StatementUtils {
     }
 
 
-    private static void addPrimaryKeyColumnsToCondition(Table table, StringBuilder sql, String predicate) {
-        for (Iterator<Column> i = table.primaryKeyColumns().iterator(); i.hasNext();) {
-            final Column key = i.next();
-            sql.append(key.name()).append(predicate);
-            if (i.hasNext()) {
+    private static void addPrimaryKeyColumnsToCondition(RowType pkRowType, StringBuilder sql, String predicate) {
+        for (Iterator<String> fieldNamesIt = pkRowType.getFieldNames().iterator(); fieldNamesIt.hasNext();) {
+            sql.append(fieldNamesIt.next()).append(predicate);
+            if (fieldNamesIt.hasNext()) {
                 sql.append(" AND ");
             }
         }
     }
 
-    private static String getPrimaryKeyColumnsProjection(Table table) {
+    private static String getPrimaryKeyColumnsProjection(RowType pkRowType) {
         StringBuilder sql = new StringBuilder();
-        for (Iterator<Column> i = table.primaryKeyColumns().iterator(); i.hasNext();) {
-            final Column key = i.next();
-            sql.append("MAX(" + key.name() + ")");
-            if (i.hasNext()) {
+        for (Iterator<String> fieldNamesIt = pkRowType.getFieldNames().iterator(); fieldNamesIt.hasNext();) {
+            sql.append("MAX(" + fieldNamesIt.next() + ")");
+            if (fieldNamesIt.hasNext()) {
                 sql.append(" , ");
             }
         }
@@ -146,4 +148,5 @@ public class StatementUtils {
     private static String quotedTableIdString(TableId tableId) {
         return tableId.toDoubleQuotedString();
     }
+
 }

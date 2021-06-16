@@ -19,43 +19,74 @@
 package com.alibaba.ververica.cdc.connectors.mysql.source.split;
 
 import org.apache.flink.api.connector.source.SourceSplit;
+import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.Preconditions;
 
-import java.io.Serializable;
-import java.util.Map;
-import java.util.Objects;
+import io.debezium.connector.mysql.legacy.BinlogReader.BinlogPosition;
+import io.debezium.relational.TableId;
 
 import javax.annotation.Nullable;
 
-import io.debezium.relational.TableId;
+import java.util.Optional;
 
 /**
  * The split of table comes from a Table that splits by primary key.
  */
-public final class MySQLSplit implements SourceSplit, Comparable<MySQLSplit>, Serializable {
+public class MySQLSplit implements SourceSplit {
 
-    private static final long serialVersionUID = 1L;
-    private final MySQLSplitType mySQLSplitType;
-    private final Long assignTimestamp;
     private final TableId tableId;
     private final String splitId;
-    private final Map<String, Object> splitStart;
-    private final Map<String, Object> splitEnd;
+    private final RowType splitBoundaryType;
+    private final Optional<RowData> splitBoundaryStart;
+    private final Optional<RowData> splitBoundaryEnd;
 
-    public MySQLSplit(MySQLSplitType mySQLSplitType, TableId tableId, String splitId, @Nullable Map<String, Object> splitStart, @Nullable Map<String, Object> splitEnd) {
-        this(mySQLSplitType, System.currentTimeMillis(), tableId, splitId, splitStart, splitEnd);
+    private final boolean snapshotFinished;
+    private BinlogPosition lowWatermark = null;
+    private BinlogPosition highWatermark = null;
+    private BinlogPosition binlogStartOffset = null;
 
-    }
+    /**
+     * The splits are frequently serialized into checkpoints. Caching the byte representation makes
+     * repeated serialization cheap. This field is used by {@link MySQLSplitSerializer}.
+     */
+    @Nullable
+    transient byte[] serializedFormCache;
 
-    public MySQLSplit(MySQLSplitType mySQLSplitType, long assignTimestamp, TableId tableId, String splitId, Map<String, Object> splitStart, Map<String, Object> splitEnd) {
-        this.mySQLSplitType = mySQLSplitType;
-        this.assignTimestamp = assignTimestamp;
+
+    public MySQLSplit(TableId tableId, String splitId, RowType splitBoundaryType, Optional<RowData> splitBoundaryStart, Optional<RowData> splitBoundaryEnd,
+                      @Nullable byte[] serializedFormCache) {
         this.tableId = tableId;
         this.splitId = splitId;
-        this.splitStart = splitStart;
-        this.splitEnd = splitEnd;
-        Preconditions.checkState(splitStart == null && splitEnd == null,
-            "The split start and split end cannot both be null. ");
+        this.splitBoundaryType = splitBoundaryType;
+        this.splitBoundaryStart = splitBoundaryStart;
+        this.splitBoundaryEnd = splitBoundaryEnd;
+        Preconditions.checkState(!splitBoundaryStart.isPresent() && !splitBoundaryEnd.isPresent(),
+            "The splitBoundaryStart and splitBoundaryEnd cannot both be empty");
+        this.serializedFormCache = serializedFormCache;
+        this.snapshotFinished = false;
+    }
+
+    public MySQLSplit(
+        TableId tableId,
+        String splitId,
+        RowType splitBoundaryType,
+        Optional<RowData> splitBoundaryStart,
+        Optional<RowData> splitBoundaryEnd,
+        boolean snapshotFinished,
+        BinlogPosition lowWatermark,
+        BinlogPosition highWatermark,
+        BinlogPosition binlogStartOffset,
+        @Nullable byte[] serializedFormCache) {
+        this.tableId = tableId;
+        this.splitId = splitId;
+        this.splitBoundaryType = splitBoundaryType;
+        this.splitBoundaryStart = splitBoundaryStart;
+        this.splitBoundaryEnd = splitBoundaryEnd;
+        this.snapshotFinished = snapshotFinished;
+        this.lowWatermark = lowWatermark;
+        this.highWatermark = highWatermark;
+        this.binlogStartOffset = binlogStartOffset;
     }
 
     @Override
@@ -67,58 +98,55 @@ public final class MySQLSplit implements SourceSplit, Comparable<MySQLSplit>, Se
         return tableId;
     }
 
-    public MySQLSplitType getMySQLSplitType() {
-        return mySQLSplitType;
+    public String getSplitId() {
+        return splitId;
     }
 
-    public boolean isLastSnapshotSplit(){
-        return mySQLSplitType == MySQLSplitType.SNAPSHOT && splitEnd == null;
+    public RowType getSplitBoundaryType() {
+        return splitBoundaryType;
     }
 
-    public Map<String, Object> getSplitStart() {
-        return splitStart;
+    public Optional<RowData> getSplitBoundaryStart() {
+        return splitBoundaryStart;
     }
 
-    public Map<String, Object> getSplitEnd() {
-        return splitEnd;
+    public Optional<RowData> getSplitBoundaryEnd() {
+        return splitBoundaryEnd;
     }
 
-    @Override
-    public int compareTo(MySQLSplit o) {
-        return this.assignTimestamp.compareTo(o.assignTimestamp);
+    @Nullable
+    public byte[] getSerializedFormCache() {
+        return serializedFormCache;
+    }
+
+    public boolean isSnapshotFinished() {
+        return snapshotFinished;
+    }
+
+    public BinlogPosition getLowWatermark() {
+        return lowWatermark;
+    }
+
+    public BinlogPosition getHighWatermark() {
+        return highWatermark;
+    }
+
+    public BinlogPosition getBinlogStartOffset() {
+        return binlogStartOffset;
     }
 
     @Override
     public String toString() {
         return "MySQLSplit{" +
-            "mySQLSplitType=" + mySQLSplitType +
-            ", assignTimestamp=" + assignTimestamp +
-            ", tableId=" + tableId +
+            "tableId=" + tableId +
             ", splitId='" + splitId + '\'' +
-            ", splitStart=" + splitStart +
-            ", splitEnd=" + splitEnd +
+            ", splitBoundaryType=" + splitBoundaryType +
+            ", splitBoundaryStart=" + splitBoundaryStart +
+            ", splitBoundaryEnd=" + splitBoundaryEnd +
+            ", snapshotFinished=" + snapshotFinished +
+            ", lowWatermark=" + lowWatermark +
+            ", highWatermark=" + highWatermark +
+            ", binlogStartOffset=" + binlogStartOffset +
             '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof MySQLSplit)) {
-            return false;
-        }
-        MySQLSplit that = (MySQLSplit) o;
-        return mySQLSplitType == that.mySQLSplitType &&
-            Objects.equals(assignTimestamp, that.assignTimestamp) &&
-            Objects.equals(tableId, that.tableId) &&
-            Objects.equals(splitId, that.splitId) &&
-            Objects.equals(splitStart, that.splitStart) &&
-            Objects.equals(splitEnd, that.splitEnd);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(mySQLSplitType, assignTimestamp, tableId, splitId, splitStart, splitEnd);
     }
 }

@@ -20,7 +20,7 @@ package com.alibaba.ververica.cdc.connectors.mysql.debezium;
 
 import java.io.Serializable;
 
-import io.debezium.connector.mysql.BinlogReader.BinlogPosition;
+import io.debezium.connector.mysql.legacy.BinlogReader.BinlogPosition;
 
 /**
  * The watermark  interval used to describe the start point and end point of a split scan.

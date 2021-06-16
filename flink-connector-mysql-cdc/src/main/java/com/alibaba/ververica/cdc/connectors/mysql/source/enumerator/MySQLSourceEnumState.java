@@ -20,54 +20,47 @@ package com.alibaba.ververica.cdc.connectors.mysql.source.enumerator;
 
 import com.alibaba.ververica.cdc.connectors.mysql.source.split.MySQLSplit;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.Collection;
 
 import io.debezium.relational.TableId;
+
+import javax.annotation.Nullable;
 
 /**
  * The state of MySQL CDC source enumerator.
  */
 public class MySQLSourceEnumState {
 
-    private final Set<TableId> capturedTables;
-    private final Set<TableId> assignedTables;
-    private final HashSet<MySQLSplit> recycleSplits;
-    private final Map<TableId, MySQLSplit> assignedTableMaxSplit;
-    private final Map<TableId, Object[]> tableMaxPrimaryKey;
-    private final TableId currentTable;
+    /** The splits in the checkpoint. */
+    private final Collection<MySQLSplit> remainingSplits;
 
-    public MySQLSourceEnumState(Set<TableId> capturedTables, Set<TableId> assignedTables, HashSet<MySQLSplit> recycleSplits, Map<TableId, MySQLSplit> assignedTableMaxSplit, Map<TableId, Object[]> tableMaxPrimaryKey, TableId currentTable) {
-        this.capturedTables = capturedTables;
-        this.assignedTables = assignedTables;
-        this.recycleSplits = recycleSplits;
-        this.assignedTableMaxSplit = assignedTableMaxSplit;
-        this.tableMaxPrimaryKey = tableMaxPrimaryKey;
-        this.currentTable = currentTable;
+    /**
+     * The paths that are no longer in the enumerator checkpoint, but have been processed before and
+     * should this be ignored. Relevant only for sources in continuous monitoring mode.
+     */
+    private final Collection<TableId> alreadyProcessedTables;
+
+    /**
+     * The cached byte representation from the last serialization step. This helps to avoid paying
+     * repeated serialization cost for the same checkpoint object. This field is used by {@link
+     * MySQLSourceEnumStateSerializer}.
+     */
+    @Nullable byte[] serializedFormCache;
+
+    public MySQLSourceEnumState(Collection<TableId> alreadyProcessedTables, Collection<MySQLSplit> remainingSplits) {
+        this.alreadyProcessedTables = alreadyProcessedTables;
+        this.remainingSplits = remainingSplits;
     }
 
-    public Set<TableId> getCapturedTables() {
-        return capturedTables;
+    public Collection<TableId> getAlreadyProcessedTables() {
+        return alreadyProcessedTables;
     }
 
-    public Set<TableId> getAssignedTables() {
-        return assignedTables;
+    public Collection<MySQLSplit> getRemainingSplits() {
+        return remainingSplits;
     }
 
-    public HashSet<MySQLSplit> getRecycleSplits() {
-        return recycleSplits;
-    }
-
-    public Map<TableId, MySQLSplit> getAssignedTableMaxSplit() {
-        return assignedTableMaxSplit;
-    }
-
-    public Map<TableId, Object[]> getTableMaxPrimaryKey() {
-        return tableMaxPrimaryKey;
-    }
-
-    public TableId getCurrentTable() {
-        return currentTable;
+    static MySQLSourceEnumState reusingCollection(final Collection<TableId> alreadyProcessedTables, final Collection<MySQLSplit> splits) {
+        return new MySQLSourceEnumState(alreadyProcessedTables, splits);
     }
 }

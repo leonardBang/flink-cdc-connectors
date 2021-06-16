@@ -24,6 +24,7 @@ import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.ScanTableSource;
 import org.apache.flink.table.connector.source.SourceFunctionProvider;
+import org.apache.flink.table.connector.source.SourceProvider;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.types.RowKind;
@@ -118,7 +119,8 @@ public class MySQLTableSource implements ScanTableSource {
         Optional.ofNullable(serverId).ifPresent(builder::serverId);
         DebeziumSourceFunction<RowData> sourceFunction = builder.build();
 
-        return SourceFunctionProvider.of(sourceFunction, false);
+        return SourceProvider.of(new com.alibaba.ververica.cdc.connectors.mysql.source.MySQLSource(null, null, null));
+//        return SourceFunctionProvider.of(sourceFunction, false);
     }
 
     @Override
