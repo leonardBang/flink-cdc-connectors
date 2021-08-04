@@ -1,1 +1,12 @@
-theme: jekyll-theme-cayman
+title: Flink CDC
+author: Leonard Xu
+email: xbjtdcq@gmail.com
+description: Change Data Capture (CDC) Connectors for Apache Flink
+
+remote_theme: rundocs/jekyll-rtd-theme
+
+readme_index:
+  with_frontmatter: true
+
+plugins:
+  - github-pages
