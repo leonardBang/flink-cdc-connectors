@@ -16,6 +16,7 @@
 #  See the License for the specific language governing permissions and
 # limitations under the License.
 ################################################################################
+
 set -x
 
 # step-1: install dependencies
@@ -51,7 +52,7 @@ git checkout master
 git config --global user.name "${GITHUB_ACTOR}"
 git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
 
-# step-3: push build sites to  gh-pages branch
+# step-3: push build sites to gh-pages branch
 pushd "${temp_docs_root}"
 git init
 git remote add deploy "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
@@ -75,6 +76,6 @@ git add .
 git commit -m "Generated docs from commit ${GITHUB_SHA}"
 git push deploy gh-pages --force
 
+# pop back and exit
 popd
-
 exit 0
