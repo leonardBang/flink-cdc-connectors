@@ -26,3 +26,14 @@
     max-width: 100%;
     overflow: visible;
 }
+
+.simple ul {
+    margin: 0;
+    padding: 0 0 0 40px;
+    list-style: disc;
+    list-style-image: none;
+}
+
+.simple ul li {
+    list-style: disc;
+}
