@@ -95,10 +95,6 @@ html_context = {
     ],
 }
 
-# multiple version supports
-import sys, os
-sys.path.insert(0, os.path.abspath('.'))
-
 try:
     html_context
 except NameError:
