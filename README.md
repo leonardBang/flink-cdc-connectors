@@ -108,6 +108,7 @@ Flink CDC Connectors is now available at your local `.m2` repository.
 
 ## License
 
+
 The code in this repository is licensed under the [Apache Software License 2](https://github.com/ververica/flink-cdc-connectors/blob/master/LICENSE).
 
 ## Contributing

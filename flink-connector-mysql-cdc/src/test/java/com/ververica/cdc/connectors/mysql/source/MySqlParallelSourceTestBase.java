@@ -38,6 +38,7 @@ import com.ververica.cdc.connectors.mysql.source.utils.MySqlContainer;
 import com.ververica.cdc.connectors.mysql.source.utils.UniqueDatabase;
 import io.debezium.connector.mysql.MySqlConnection;
 import io.debezium.jdbc.JdbcConnection;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.slf4j.Logger;
@@ -87,8 +88,8 @@ public abstract class MySqlParallelSourceTestBase extends TestLogger {
     private final UniqueDatabase customDatabase =
             new UniqueDatabase(MYSQL_CONTAINER, "customer", "mysqluser", "mysqlpw");
 
-    @BeforeClass
-    public static void startContainers() {
+    @Before
+    public void startContainers() {
         LOG.info("Starting containers...");
         Startables.deepStart(Stream.of(MYSQL_CONTAINER)).join();
         LOG.info("Containers are started.");
