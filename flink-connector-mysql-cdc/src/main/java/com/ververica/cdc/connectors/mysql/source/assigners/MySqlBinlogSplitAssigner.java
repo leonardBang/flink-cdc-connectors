@@ -18,13 +18,12 @@
 
 package com.ververica.cdc.connectors.mysql.source.assigners;
 
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.FlinkRuntimeException;
 
 import com.ververica.cdc.connectors.mysql.schema.MySqlSchema;
-import com.ververica.cdc.connectors.mysql.source.MySqlSourceOptions;
+import com.ververica.cdc.connectors.mysql.source.MySqlParallelSourceConfig;
 import com.ververica.cdc.connectors.mysql.source.assigners.state.BinlogPendingSplitsState;
 import com.ververica.cdc.connectors.mysql.source.assigners.state.PendingSplitsState;
 import com.ververica.cdc.connectors.mysql.source.offset.BinlogOffset;
@@ -44,10 +43,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import static com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils.closeMySqlConnection;
-import static com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils.createTableFilters;
 import static com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils.currentBinlogOffset;
 import static com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils.openMySqlConnection;
-import static com.ververica.cdc.connectors.mysql.debezium.task.context.StatefulTaskContext.toDebeziumConfig;
 import static com.ververica.cdc.connectors.mysql.source.utils.TableDiscoveryUtils.listTables;
 import static org.apache.flink.table.api.DataTypes.FIELD;
 import static org.apache.flink.table.api.DataTypes.ROW;
@@ -59,32 +56,34 @@ import static org.apache.flink.table.api.DataTypes.ROW;
  * the split size.
  */
 public class MySqlBinlogSplitAssigner implements MySqlSplitAssigner {
+
     private static final String BINLOG_SPLIT_ID = "binlog-split";
 
-    private final Configuration configuration;
+    private final MySqlParallelSourceConfig sourceConfig;
     private final RelationalTableFilters tableFilters;
 
     private MySqlConnection jdbc;
     private boolean isBinlogSplitAssigned;
 
-    public MySqlBinlogSplitAssigner(Configuration configuration) {
-        this(configuration, false);
+    public MySqlBinlogSplitAssigner(MySqlParallelSourceConfig sourceConfig) {
+        this(sourceConfig, false);
     }
 
     public MySqlBinlogSplitAssigner(
-            Configuration configuration, BinlogPendingSplitsState checkpoint) {
-        this(configuration, checkpoint.isBinlogSplitAssigned());
+            MySqlParallelSourceConfig sourceConfig, BinlogPendingSplitsState checkpoint) {
+        this(sourceConfig, checkpoint.isBinlogSplitAssigned());
     }
 
-    private MySqlBinlogSplitAssigner(Configuration configuration, boolean isBinlogSplitAssigned) {
-        this.configuration = configuration;
-        this.tableFilters = createTableFilters(configuration);
+    private MySqlBinlogSplitAssigner(
+            MySqlParallelSourceConfig sourceConfig, boolean isBinlogSplitAssigned) {
+        this.sourceConfig = sourceConfig;
+        this.tableFilters = sourceConfig.getTableFilters();
         this.isBinlogSplitAssigned = isBinlogSplitAssigned;
     }
 
     @Override
     public void open() {
-        jdbc = openMySqlConnection(configuration);
+        jdbc = openMySqlConnection(sourceConfig.getDbzConfiguration());
     }
 
     @Override
@@ -155,16 +154,17 @@ public class MySqlBinlogSplitAssigner implements MySqlSplitAssigner {
         } catch (SQLException e) {
             throw new FlinkRuntimeException("Failed to discover captured tables", e);
         }
+
         if (capturedTableIds.isEmpty()) {
             throw new IllegalArgumentException(
                     String.format(
                             "Can't find any matched tables, please check your configured database-name: %s and table-name: %s",
-                            configuration.get(MySqlSourceOptions.DATABASE_NAME),
-                            configuration.get(MySqlSourceOptions.TABLE_NAME)));
+                            sourceConfig.getDbzConfiguration().getString("database.whitelist"),
+                            sourceConfig.getDbzConfiguration().getString("table.whitelist")));
         }
 
         // fetch table schemas
-        MySqlSchema mySqlSchema = new MySqlSchema(toDebeziumConfig(configuration), jdbc);
+        MySqlSchema mySqlSchema = new MySqlSchema(sourceConfig, jdbc);
         Map<TableId, TableChange> tableSchemas = new HashMap<>();
         for (TableId tableId : capturedTableIds) {
             TableChange tableSchema = mySqlSchema.getTableSchema(tableId);
