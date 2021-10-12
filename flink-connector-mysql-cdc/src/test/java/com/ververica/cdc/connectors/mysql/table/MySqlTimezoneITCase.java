@@ -156,7 +156,7 @@ public class MySqlTimezoneITCase {
                                 + "    file_uuid BYTES,\n"
                                 + "    primary key (`id`) not enforced"
                                 + ") WITH ("
-                                + " 'connector' = 'mysql-cdc',"
+                                + " 'connector' = 'mysql-cdc-liaofeng',"
                                 + " 'hostname' = '%s',"
                                 + " 'port' = '%s',"
                                 + " 'username' = '%s',"

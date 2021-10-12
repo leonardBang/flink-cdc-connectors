@@ -147,7 +147,7 @@ public class MySqlParallelSourceITCase extends MySqlParallelSourceTestBase {
                                 + " phone_number STRING,"
                                 + " primary key (id) not enforced"
                                 + ") WITH ("
-                                + " 'connector' = 'mysql-cdc',"
+                                + " 'connector' = 'mysql-cdc-liaofeng',"
                                 + " 'scan.incremental.snapshot.enabled' = 'true',"
                                 + " 'hostname' = '%s',"
                                 + " 'port' = '%s',"

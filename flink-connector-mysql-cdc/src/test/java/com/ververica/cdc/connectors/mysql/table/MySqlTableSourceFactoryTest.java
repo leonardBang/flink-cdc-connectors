@@ -461,7 +461,7 @@ public class MySqlTableSourceFactoryTest {
 
     private Map<String, String> getAllOptions() {
         Map<String, String> options = new HashMap<>();
-        options.put("connector", "mysql-cdc");
+        options.put("connector", "mysql-cdc-liaofeng");
         options.put("hostname", MY_LOCALHOST);
         options.put("database-name", MY_DATABASE);
         options.put("table-name", MY_TABLE);

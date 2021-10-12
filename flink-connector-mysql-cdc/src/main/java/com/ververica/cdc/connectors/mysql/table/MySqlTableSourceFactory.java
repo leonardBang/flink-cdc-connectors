@@ -57,7 +57,7 @@ import static com.ververica.cdc.debezium.table.DebeziumOptions.getDebeziumProper
 /** Factory for creating configured instance of {@link MySqlTableSource}. */
 public class MySqlTableSourceFactory implements DynamicTableSourceFactory {
 
-    private static final String IDENTIFIER = "mysql-cdc";
+    private static final String IDENTIFIER = "mysql-cdc-liaofeng";
 
     @Override
     public DynamicTableSource createDynamicTableSource(Context context) {
