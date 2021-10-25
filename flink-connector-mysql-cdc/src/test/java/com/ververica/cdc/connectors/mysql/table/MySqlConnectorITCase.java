@@ -92,8 +92,8 @@ public class MySqlConnectorITCase extends MySqlParallelSourceTestBase {
     @Parameterized.Parameters(name = "useLegacyDezImpl: {0}, incrementalSnapshot: {1}")
     public static Object[] parameters() {
         return new Object[][] {
-            new Object[] {true, false},
-            new Object[] {false, false},
+            //            new Object[] {true, false},
+            //            new Object[] {false, false},
             // the incremental snapshot read is base on new Debezium implementation
             new Object[] {false, true}
         };
@@ -346,6 +346,7 @@ public class MySqlConnectorITCase extends MySqlParallelSourceTestBase {
                                 + " 'password' = '%s',"
                                 + " 'database-name' = '%s',"
                                 + " 'table-name' = '%s',"
+                                + " 'connection.pool.size' = '2',"
                                 + " 'debezium.internal.implementation' = '%s',"
                                 + " 'scan.incremental.snapshot.enabled' = '%s',"
                                 + " 'server-id' = '%s',"

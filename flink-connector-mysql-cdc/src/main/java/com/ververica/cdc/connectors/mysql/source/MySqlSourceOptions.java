@@ -125,6 +125,12 @@ public class MySqlSourceOptions {
                     .withDescription(
                             "The maximum time that the connector should wait after trying to connect to the MySQL database server before timing out.");
 
+    public static final ConfigOption<Integer> CONNECTION_POOL_SIZE =
+            ConfigOptions.key("connection.pool.size")
+                    .intType()
+                    .defaultValue(20)
+                    .withDescription("The connection pool size.");
+
     public static final ConfigOption<String> SCAN_STARTUP_MODE =
             ConfigOptions.key("scan.startup.mode")
                     .stringType()

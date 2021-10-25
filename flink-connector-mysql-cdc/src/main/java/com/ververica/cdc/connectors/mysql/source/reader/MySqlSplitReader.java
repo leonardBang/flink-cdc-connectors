@@ -97,6 +97,7 @@ public class MySqlSplitReader implements SplitReader<SourceRecord, MySqlSplit> {
 
     @Override
     public void close() throws Exception {
+        LOG.info("Close current MySqlSplitReader reader {}", this.getClass().getCanonicalName());
         if (currentReader != null) {
             LOG.info(
                     "Close current debezium reader {}",
@@ -126,6 +127,11 @@ public class MySqlSplitReader implements SplitReader<SourceRecord, MySqlSplit> {
                     final StatefulTaskContext statefulTaskContext =
                             new StatefulTaskContext(config, binaryLogClient, jdbcConnection);
                     currentReader = new SnapshotSplitReader(statefulTaskContext, subtaskId);
+                    LOG.info(
+                            "Create SnapshotSplitReader {} with connection {} and BinaryLogClient {}",
+                            currentReader,
+                            jdbcConnection,
+                            binaryLogClient);
                 }
             } else {
                 // point from snapshot split to binlog split
@@ -137,8 +143,12 @@ public class MySqlSplitReader implements SplitReader<SourceRecord, MySqlSplit> {
                 final BinaryLogClient binaryLogClient = getBinaryClient(config);
                 final StatefulTaskContext statefulTaskContext =
                         new StatefulTaskContext(config, binaryLogClient, jdbcConnection);
-                LOG.info("Create binlog reader");
                 currentReader = new BinlogSplitReader(statefulTaskContext, subtaskId);
+                LOG.info(
+                        "Create BinlogSplitReader {} with connection {} and BinaryLogClient {}",
+                        currentReader,
+                        jdbcConnection,
+                        binaryLogClient);
             }
             currentReader.submitSplit(nextSplit);
         }

@@ -29,6 +29,8 @@ import com.ververica.cdc.connectors.mysql.source.split.MySqlSnapshotSplit;
 import com.ververica.cdc.connectors.mysql.source.split.MySqlSplit;
 import io.debezium.relational.TableId;
 import io.debezium.relational.history.TableChanges;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,14 +46,23 @@ import java.util.stream.Collectors;
  * range and chunk size and also continue with a binlog split.
  */
 public class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MySqlHybridSplitAssigner.class);
     private static final String BINLOG_SPLIT_ID = "binlog-split";
 
     private boolean isBinlogSplitAssigned;
 
     private final MySqlSnapshotSplitAssigner snapshotSplitAssigner;
 
-    public MySqlHybridSplitAssigner(Configuration configuration, int currentParallelism) {
-        this(new MySqlSnapshotSplitAssigner(configuration, currentParallelism), false);
+    public MySqlHybridSplitAssigner(
+            Configuration configuration,
+            int currentParallelism,
+            List<TableId> remainingTables,
+            boolean isTableIdCaseSensitive) {
+        this(
+                new MySqlSnapshotSplitAssigner(
+                        configuration, currentParallelism, remainingTables, isTableIdCaseSensitive),
+                false);
     }
 
     public MySqlHybridSplitAssigner(
@@ -72,6 +83,7 @@ public class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
 
     @Override
     public void open() {
+        LOG.info("Open assigner");
         snapshotSplitAssigner.open();
     }
 
@@ -87,7 +99,8 @@ public class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
                 // assigning the binlog split. Otherwise, records emitted from binlog split
                 // might be out-of-order in terms of same primary key with snapshot splits.
                 isBinlogSplitAssigned = true;
-                return Optional.of(createBinlogSplit());
+                MySqlBinlogSplit binlogSplit = createBinlogSplit();
+                return Optional.of(binlogSplit);
             } else {
                 // binlog split is not ready by now
                 return Optional.empty();
@@ -135,7 +148,9 @@ public class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
 
     @Override
     public void close() {
+        LOG.info("Closing assigner");
         snapshotSplitAssigner.close();
+        LOG.info("Closed assigner");
     }
 
     // --------------------------------------------------------------------------------------------

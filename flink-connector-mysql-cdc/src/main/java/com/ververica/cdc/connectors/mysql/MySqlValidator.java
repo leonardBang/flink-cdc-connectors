@@ -27,6 +27,7 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils;
 import com.ververica.cdc.debezium.Validator;
 import io.debezium.connector.mysql.MySqlConnection;
+import io.debezium.jdbc.JdbcConnection;
 
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -65,7 +66,23 @@ public class MySqlValidator implements Validator {
         }
     }
 
-    private void checkVersion(MySqlConnection connection) throws SQLException {
+    /**
+     * Validate using given connection.
+     *
+     * @param connection
+     */
+    public void validate(JdbcConnection connection) {
+        try {
+            checkVersion(connection);
+            checkBinlogFormat(connection);
+            checkBinlogRowImage(connection);
+        } catch (SQLException ex) {
+            throw new TableException(
+                    "Unexpected error while connecting to MySQL and validating", ex);
+        }
+    }
+
+    private void checkVersion(JdbcConnection connection) throws SQLException {
         String version =
                 connection.queryAndMap("SELECT VERSION()", rs -> rs.next() ? rs.getString(1) : "");
 
@@ -93,7 +110,7 @@ public class MySqlValidator implements Validator {
     }
 
     /** Check whether the binlog format is ROW. */
-    private void checkBinlogFormat(MySqlConnection connection) throws SQLException {
+    private void checkBinlogFormat(JdbcConnection connection) throws SQLException {
         String mode =
                 connection
                         .queryAndMap(
@@ -111,7 +128,7 @@ public class MySqlValidator implements Validator {
     }
 
     /** Check whether the binlog row image is FULL. */
-    private void checkBinlogRowImage(MySqlConnection connection) throws SQLException {
+    private void checkBinlogRowImage(JdbcConnection connection) throws SQLException {
         String rowImage =
                 connection
                         .queryAndMap(

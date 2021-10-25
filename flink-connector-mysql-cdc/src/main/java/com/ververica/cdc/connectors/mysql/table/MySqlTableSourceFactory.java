@@ -28,6 +28,7 @@ import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.utils.TableSchemaUtils;
 import org.apache.flink.util.Preconditions;
 
+import com.ververica.cdc.connectors.mysql.source.MySqlSourceOptions;
 import com.ververica.cdc.debezium.table.DebeziumOptions;
 
 import java.time.Duration;
@@ -35,6 +36,7 @@ import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.Set;
 
+import static com.ververica.cdc.connectors.mysql.source.MySqlSourceOptions.CONNECTION_POOL_SIZE;
 import static com.ververica.cdc.connectors.mysql.source.MySqlSourceOptions.CONNECT_TIMEOUT;
 import static com.ververica.cdc.connectors.mysql.source.MySqlSourceOptions.DATABASE_NAME;
 import static com.ververica.cdc.connectors.mysql.source.MySqlSourceOptions.HOSTNAME;
@@ -86,6 +88,7 @@ public class MySqlTableSourceFactory implements DynamicTableSourceFactory {
             validateStartupOptionIfEnableParallel(startupOptions);
         }
         Duration connectTimeout = config.get(CONNECT_TIMEOUT);
+        int conectionPoolSize = config.get(MySqlSourceOptions.CONNECTION_POOL_SIZE);
 
         return new MySqlTableSource(
                 physicalSchema,
@@ -102,6 +105,7 @@ public class MySqlTableSourceFactory implements DynamicTableSourceFactory {
                 splitSize,
                 fetchSize,
                 connectTimeout,
+                conectionPoolSize,
                 startupOptions);
     }
 
@@ -135,6 +139,7 @@ public class MySqlTableSourceFactory implements DynamicTableSourceFactory {
         options.add(SCAN_INCREMENTAL_SNAPSHOT_CHUNK_SIZE);
         options.add(SCAN_SNAPSHOT_FETCH_SIZE);
         options.add(CONNECT_TIMEOUT);
+        options.add(CONNECTION_POOL_SIZE);
         return options;
     }
 

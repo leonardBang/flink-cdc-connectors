@@ -116,6 +116,8 @@ public class PendingSplitsStateSerializerTest {
                 remainingSplits,
                 assignedSnapshotSplits,
                 finishedOffsets,
+                false,
+                new ArrayList<>(),
                 false);
     }
 

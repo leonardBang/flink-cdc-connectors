@@ -25,6 +25,7 @@ import com.ververica.cdc.connectors.mysql.debezium.EmbeddedFlinkDatabaseHistory;
 import com.ververica.cdc.connectors.mysql.source.MySqlParallelSourceTestBase;
 import com.ververica.cdc.connectors.mysql.source.split.MySqlSplit;
 import com.ververica.cdc.connectors.mysql.testutils.UniqueDatabase;
+import io.debezium.relational.TableId;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -138,8 +139,11 @@ public class MySqlSnapshotSplitAssignerTest extends MySqlParallelSourceTestBase 
                         .collect(Collectors.toList());
         configuration.setString("table.whitelist", String.join(",", captureTableIds));
 
+        List<TableId> remainningTables =
+                Arrays.stream(captureTables).map(TableId::parse).collect(Collectors.toList());
         final MySqlSnapshotSplitAssigner assigner =
-                new MySqlSnapshotSplitAssigner(configuration, DEFAULT_PARALLELISM);
+                new MySqlSnapshotSplitAssigner(
+                        configuration, DEFAULT_PARALLELISM, remainningTables, false);
 
         assigner.open();
         List<MySqlSplit> sqlSplits = new ArrayList<>();

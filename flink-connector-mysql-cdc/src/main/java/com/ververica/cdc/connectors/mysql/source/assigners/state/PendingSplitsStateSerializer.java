@@ -148,6 +148,8 @@ public class PendingSplitsStateSerializer implements SimpleVersionedSerializer<P
         writeAssignedSnapshotSplits(state.getAssignedSplits(), out);
         writeFinishedOffsets(state.getSplitFinishedOffsets(), out);
         out.writeBoolean(state.isAssignerFinished());
+        writeTableIds(state.getRemainingTables(), out);
+        out.writeBoolean(state.isTableIdCaseSensitive());
     }
 
     private void serializeHybridPendingSplitsState(
@@ -173,12 +175,16 @@ public class PendingSplitsStateSerializer implements SimpleVersionedSerializer<P
                 readAssignedSnapshotSplits(splitVersion, in);
         Map<String, BinlogOffset> finishedOffsets = readFinishedOffsets(offsetVersion, in);
         boolean isAssignerFinished = in.readBoolean();
+        List<TableId> remainingTableIds = readTableIds(in);
+        boolean isTableIdCaseSensitive = in.readBoolean();
         return new SnapshotPendingSplitsState(
                 alreadyProcessedTables,
                 remainingSplits,
                 assignedSnapshotSplits,
                 finishedOffsets,
-                isAssignerFinished);
+                isAssignerFinished,
+                remainingTableIds,
+                isTableIdCaseSensitive);
     }
 
     private HybridPendingSplitsState deserializeHybridPendingSplitsState(

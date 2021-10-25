@@ -22,6 +22,7 @@ import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.flink.shaded.guava18.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import com.esotericsoftware.minlog.Log;
 import com.ververica.cdc.connectors.mysql.debezium.dispatcher.SignalEventDispatcher;
 import com.ververica.cdc.connectors.mysql.debezium.task.MySqlBinlogSplitReadTask;
 import com.ververica.cdc.connectors.mysql.debezium.task.MySqlSnapshotSplitReadTask;
@@ -257,11 +258,18 @@ public class SnapshotSplitReader implements DebeziumReader<SourceRecord, MySqlSp
 
     @Override
     public void close() {
+        Log.info("Close reader {}", this.getClass().getCanonicalName());
         try {
             if (statefulTaskContext.getConnection() != null) {
+                Log.info(
+                        "Closing MySQL Connection {}",
+                        statefulTaskContext.getConnection().toString());
                 statefulTaskContext.getConnection().close();
             }
             if (statefulTaskContext.getBinaryLogClient() != null) {
+                Log.info(
+                        "Closing MySQL BinaryLogClient {}",
+                        statefulTaskContext.getBinaryLogClient().toString());
                 statefulTaskContext.getBinaryLogClient().disconnect();
             }
         } catch (Exception e) {

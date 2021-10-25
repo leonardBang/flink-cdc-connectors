@@ -23,6 +23,7 @@ import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.FlinkRuntimeException;
 
+import com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils;
 import com.ververica.cdc.connectors.mysql.schema.MySqlSchema;
 import com.ververica.cdc.connectors.mysql.source.MySqlSourceOptions;
 import com.ververica.cdc.connectors.mysql.source.assigners.state.BinlogPendingSplitsState;
@@ -34,6 +35,8 @@ import io.debezium.connector.mysql.MySqlConnection;
 import io.debezium.relational.RelationalTableFilters;
 import io.debezium.relational.TableId;
 import io.debezium.relational.history.TableChanges.TableChange;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.Collection;
@@ -43,10 +46,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils.closeMySqlConnection;
 import static com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils.createTableFilters;
 import static com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils.currentBinlogOffset;
-import static com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils.openMySqlConnection;
 import static com.ververica.cdc.connectors.mysql.debezium.task.context.StatefulTaskContext.toDebeziumConfig;
 import static com.ververica.cdc.connectors.mysql.source.utils.TableDiscoveryUtils.listTables;
 import static org.apache.flink.table.api.DataTypes.FIELD;
@@ -59,12 +60,13 @@ import static org.apache.flink.table.api.DataTypes.ROW;
  * the split size.
  */
 public class MySqlBinlogSplitAssigner implements MySqlSplitAssigner {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MySqlBinlogSplitAssigner.class);
     private static final String BINLOG_SPLIT_ID = "binlog-split";
 
     private final Configuration configuration;
     private final RelationalTableFilters tableFilters;
 
-    private MySqlConnection jdbc;
     private boolean isBinlogSplitAssigned;
 
     public MySqlBinlogSplitAssigner(Configuration configuration) {
@@ -84,7 +86,7 @@ public class MySqlBinlogSplitAssigner implements MySqlSplitAssigner {
 
     @Override
     public void open() {
-        jdbc = openMySqlConnection(configuration);
+        LOG.info("Open assigner");
     }
 
     @Override
@@ -93,7 +95,10 @@ public class MySqlBinlogSplitAssigner implements MySqlSplitAssigner {
             return Optional.empty();
         } else {
             isBinlogSplitAssigned = true;
-            return Optional.of(createBinlogSplit());
+            MySqlBinlogSplit binlogSplit = createBinlogSplit();
+            LOG.info("Release MySQL connection eagerly after binlog split assigned");
+            this.close();
+            return Optional.of(binlogSplit);
         }
     }
 
@@ -125,30 +130,35 @@ public class MySqlBinlogSplitAssigner implements MySqlSplitAssigner {
 
     @Override
     public void close() {
-        if (jdbc != null) {
-            closeMySqlConnection(jdbc);
-        }
+        LOG.info("Close assigner");
     }
 
     // ------------------------------------------------------------------------------------------
 
     private MySqlBinlogSplit createBinlogSplit() {
-        Map<TableId, TableChange> tableSchemas = discoverCapturedTableSchemas();
-        // TODO: binlog-only source shouldn't need split key (e.g. no primary key tables),
-        //  mock a split key here which should never be used later. We should refactor
-        //  MySqlBinlogSplit ASAP.
-        final RowType splitKeyType =
-                (RowType) ROW(FIELD("id", DataTypes.BIGINT().notNull())).getLogicalType();
-        return new MySqlBinlogSplit(
-                BINLOG_SPLIT_ID,
-                splitKeyType,
-                currentBinlogOffset(jdbc),
-                BinlogOffset.NO_STOPPING_OFFSET,
-                Collections.emptyList(),
-                tableSchemas);
+
+        try (MySqlConnection jdbc = DebeziumUtils.openMySqlConnection(configuration)) {
+            Map<TableId, TableChange> tableSchemas = discoverCapturedTableSchemas(jdbc);
+            // TODO: binlog-only source shouldn't need split key (e.g. no primary key tables),
+            //  mock a split key here which should never be used later. We should refactor
+            //  MySqlBinlogSplit ASAP.
+            final RowType splitKeyType =
+                    (RowType) ROW(FIELD("id", DataTypes.BIGINT().notNull())).getLogicalType();
+            final BinlogOffset currentBinlogOffset = currentBinlogOffset(jdbc);
+
+            return new MySqlBinlogSplit(
+                    BINLOG_SPLIT_ID,
+                    splitKeyType,
+                    currentBinlogOffset,
+                    BinlogOffset.NO_STOPPING_OFFSET,
+                    Collections.emptyList(),
+                    tableSchemas);
+        } catch (Exception e) {
+            throw new FlinkRuntimeException("Create binlog split error", e);
+        }
     }
 
-    private Map<TableId, TableChange> discoverCapturedTableSchemas() {
+    private Map<TableId, TableChange> discoverCapturedTableSchemas(MySqlConnection jdbc) {
         final List<TableId> capturedTableIds;
         try {
             capturedTableIds = listTables(jdbc, tableFilters);
@@ -164,10 +174,11 @@ public class MySqlBinlogSplitAssigner implements MySqlSplitAssigner {
         }
 
         // fetch table schemas
-        MySqlSchema mySqlSchema = new MySqlSchema(toDebeziumConfig(configuration), jdbc);
+        MySqlSchema mySqlSchema =
+                new MySqlSchema(toDebeziumConfig(configuration), jdbc.isTableIdCaseSensitive());
         Map<TableId, TableChange> tableSchemas = new HashMap<>();
         for (TableId tableId : capturedTableIds) {
-            TableChange tableSchema = mySqlSchema.getTableSchema(tableId);
+            TableChange tableSchema = mySqlSchema.getTableSchema(jdbc, tableId);
             tableSchemas.put(tableId, tableSchema);
         }
         return tableSchemas;

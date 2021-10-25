@@ -31,6 +31,7 @@ import com.ververica.cdc.connectors.mysql.source.split.MySqlSplit;
 import com.ververica.cdc.connectors.mysql.testutils.RecordsFormatter;
 import com.ververica.cdc.connectors.mysql.testutils.UniqueDatabase;
 import io.debezium.connector.mysql.MySqlConnection;
+import io.debezium.relational.TableId;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -72,7 +73,7 @@ public class SnapshotSplitReaderTest extends MySqlParallelSourceTestBase {
                         DataTypes.FIELD("name", DataTypes.STRING()),
                         DataTypes.FIELD("address", DataTypes.STRING()),
                         DataTypes.FIELD("phone_number", DataTypes.STRING()));
-        List<MySqlSplit> mySqlSplits = getMySqlSplits(configuration);
+        List<MySqlSplit> mySqlSplits = getMySqlSplits(new String[] {"customers"}, configuration);
 
         String[] expected =
                 new String[] {
@@ -99,7 +100,7 @@ public class SnapshotSplitReaderTest extends MySqlParallelSourceTestBase {
                         DataTypes.FIELD("name", DataTypes.STRING()),
                         DataTypes.FIELD("address", DataTypes.STRING()),
                         DataTypes.FIELD("phone_number", DataTypes.STRING()));
-        List<MySqlSplit> mySqlSplits = getMySqlSplits(configuration);
+        List<MySqlSplit> mySqlSplits = getMySqlSplits(new String[] {"customers"}, configuration);
 
         String[] expected =
                 new String[] {
@@ -139,7 +140,8 @@ public class SnapshotSplitReaderTest extends MySqlParallelSourceTestBase {
                         DataTypes.FIELD("level", DataTypes.STRING()),
                         DataTypes.FIELD("name", DataTypes.STRING()),
                         DataTypes.FIELD("note", DataTypes.STRING()));
-        List<MySqlSplit> mySqlSplits = getMySqlSplits(configuration);
+        List<MySqlSplit> mySqlSplits =
+                getMySqlSplits(new String[] {"customer_card_single_line"}, configuration);
         String[] expected = new String[] {"+I[20001, LEVEL_1, user_1, user with level 1]"};
         List<String> actual =
                 readTableSnapshotSplits(mySqlSplits, configuration, mySqlSplits.size(), dataType);
@@ -156,7 +158,9 @@ public class SnapshotSplitReaderTest extends MySqlParallelSourceTestBase {
                         DataTypes.FIELD("level", DataTypes.STRING()),
                         DataTypes.FIELD("name", DataTypes.STRING()),
                         DataTypes.FIELD("note", DataTypes.STRING()));
-        List<MySqlSplit> mySqlSplits = getMySqlSplits(configuration);
+        List<MySqlSplit> mySqlSplits =
+                getMySqlSplits(
+                        new String[] {"customer_card", "customer_card_single_line"}, configuration);
 
         String[] expected =
                 new String[] {
@@ -226,9 +230,16 @@ public class SnapshotSplitReaderTest extends MySqlParallelSourceTestBase {
         return formatter.format(records);
     }
 
-    private List<MySqlSplit> getMySqlSplits(Configuration configuration) {
+    private List<MySqlSplit> getMySqlSplits(String[] captureTables, Configuration configuration) {
+        List<String> captureTableIds =
+                Arrays.stream(captureTables)
+                        .map(tableName -> customerDatabase.getDatabaseName() + "." + tableName)
+                        .collect(Collectors.toList());
+        List<TableId> remainingTables =
+                captureTableIds.stream().map(TableId::parse).collect(Collectors.toList());
         final MySqlSnapshotSplitAssigner assigner =
-                new MySqlSnapshotSplitAssigner(configuration, DEFAULT_PARALLELISM);
+                new MySqlSnapshotSplitAssigner(
+                        configuration, DEFAULT_PARALLELISM, remainingTables, false);
         assigner.open();
         List<MySqlSplit> mySqlSplitList = new ArrayList<>();
         while (true) {

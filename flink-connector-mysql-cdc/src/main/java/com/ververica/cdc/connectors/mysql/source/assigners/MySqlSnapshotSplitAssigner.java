@@ -19,7 +19,6 @@
 package com.ververica.cdc.connectors.mysql.source.assigners;
 
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.util.FlinkRuntimeException;
 
 import com.ververica.cdc.connectors.mysql.schema.MySqlSchema;
 import com.ververica.cdc.connectors.mysql.source.MySqlSourceOptions;
@@ -27,7 +26,6 @@ import com.ververica.cdc.connectors.mysql.source.assigners.state.SnapshotPending
 import com.ververica.cdc.connectors.mysql.source.offset.BinlogOffset;
 import com.ververica.cdc.connectors.mysql.source.split.MySqlSnapshotSplit;
 import com.ververica.cdc.connectors.mysql.source.split.MySqlSplit;
-import io.debezium.connector.mysql.MySqlConnection;
 import io.debezium.relational.RelationalTableFilters;
 import io.debezium.relational.TableId;
 import org.slf4j.Logger;
@@ -35,7 +33,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -45,12 +42,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils.closeMySqlConnection;
 import static com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils.createTableFilters;
-import static com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils.openMySqlConnection;
 import static com.ververica.cdc.connectors.mysql.debezium.task.context.StatefulTaskContext.toDebeziumConfig;
 import static com.ververica.cdc.connectors.mysql.source.MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_CHUNK_SIZE;
-import static com.ververica.cdc.connectors.mysql.source.utils.TableDiscoveryUtils.listTables;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
@@ -71,15 +65,19 @@ public class MySqlSnapshotSplitAssigner implements MySqlSplitAssigner {
     private final Configuration configuration;
     private final int currentParallelism;
     private final LinkedList<TableId> remainingTables;
+    private final boolean isTableIdCaseSensitive;
     private final RelationalTableFilters tableFilters;
     private final int chunkSize;
 
-    private MySqlConnection jdbc;
     private ChunkSplitter chunkSplitter;
 
     @Nullable private Long checkpointIdToFinish;
 
-    public MySqlSnapshotSplitAssigner(Configuration configuration, int currentParallelism) {
+    public MySqlSnapshotSplitAssigner(
+            Configuration configuration,
+            int currentParallelism,
+            List<TableId> remainingTables,
+            boolean isTableIdCaseSensitive) {
         this(
                 configuration,
                 currentParallelism,
@@ -87,7 +85,9 @@ public class MySqlSnapshotSplitAssigner implements MySqlSplitAssigner {
                 new ArrayList<>(),
                 new HashMap<>(),
                 new HashMap<>(),
-                false);
+                false,
+                remainingTables,
+                isTableIdCaseSensitive);
     }
 
     public MySqlSnapshotSplitAssigner(
@@ -101,7 +101,9 @@ public class MySqlSnapshotSplitAssigner implements MySqlSplitAssigner {
                 checkpoint.getRemainingSplits(),
                 checkpoint.getAssignedSplits(),
                 checkpoint.getSplitFinishedOffsets(),
-                checkpoint.isAssignerFinished());
+                checkpoint.isAssignerFinished(),
+                checkpoint.getRemainingTables(),
+                checkpoint.isTableIdCaseSensitive());
     }
 
     private MySqlSnapshotSplitAssigner(
@@ -111,7 +113,9 @@ public class MySqlSnapshotSplitAssigner implements MySqlSplitAssigner {
             List<MySqlSnapshotSplit> remainingSplits,
             Map<String, MySqlSnapshotSplit> assignedSplits,
             Map<String, BinlogOffset> splitFinishedOffsets,
-            boolean assignerFinished) {
+            boolean assignerFinished,
+            List<TableId> remainingTables,
+            boolean isTableIdCaseSensitive) {
         this.configuration = configuration;
         this.currentParallelism = currentParallelism;
         this.alreadyProcessedTables = alreadyProcessedTables;
@@ -119,9 +123,10 @@ public class MySqlSnapshotSplitAssigner implements MySqlSplitAssigner {
         this.assignedSplits = assignedSplits;
         this.splitFinishedOffsets = splitFinishedOffsets;
         this.assignerFinished = assignerFinished;
-        this.remainingTables = new LinkedList<>();
+        this.remainingTables = new LinkedList<>(remainingTables);
         this.tableFilters = createTableFilters(configuration);
         this.chunkSize = configuration.get(SCAN_INCREMENTAL_SNAPSHOT_CHUNK_SIZE);
+        this.isTableIdCaseSensitive = isTableIdCaseSensitive;
         // TODO: the check should happen in factory
         checkState(
                 chunkSize > 1,
@@ -132,16 +137,9 @@ public class MySqlSnapshotSplitAssigner implements MySqlSplitAssigner {
 
     @Override
     public void open() {
+        LOG.info("Open assigner");
         // discover captured tables
-        jdbc = openMySqlConnection(configuration);
-        chunkSplitter = createChunkSplitter(configuration, jdbc, chunkSize);
-        if (!assignerFinished) {
-            // TODO The discovery logic should move to {@link MySqlSourceEnumerator}
-            // and pass the remainingTables as one construct parameter
-            final List<TableId> discoverTables = discoverCapturedTables();
-            discoverTables.removeAll(alreadyProcessedTables);
-            remainingTables.addAll(discoverTables);
-        }
+        chunkSplitter = createChunkSplitter(configuration, isTableIdCaseSensitive, chunkSize);
     }
 
     @Override
@@ -210,7 +208,9 @@ public class MySqlSnapshotSplitAssigner implements MySqlSplitAssigner {
                         remainingSplits,
                         assignedSplits,
                         splitFinishedOffsets,
-                        assignerFinished);
+                        assignerFinished,
+                        remainingTables,
+                        isTableIdCaseSensitive);
         // we need a complete checkpoint before mark this assigner to be finished, to wait for all
         // records of snapshot splits are completely processed
         if (checkpointIdToFinish == null && !assignerFinished && allSplitsFinished()) {
@@ -231,9 +231,7 @@ public class MySqlSnapshotSplitAssigner implements MySqlSplitAssigner {
 
     @Override
     public void close() {
-        if (jdbc != null) {
-            closeMySqlConnection(jdbc);
-        }
+        LOG.info("Close assigner");
     }
 
     /** Indicates there is no more splits available in this assigner. */
@@ -267,26 +265,10 @@ public class MySqlSnapshotSplitAssigner implements MySqlSplitAssigner {
         return noMoreSplits() && assignedSplits.size() == splitFinishedOffsets.size();
     }
 
-    private List<TableId> discoverCapturedTables() {
-        final List<TableId> capturedTableIds;
-        try {
-            capturedTableIds = listTables(jdbc, tableFilters);
-        } catch (SQLException e) {
-            throw new FlinkRuntimeException("Failed to discover captured tables", e);
-        }
-        if (capturedTableIds.isEmpty()) {
-            throw new IllegalArgumentException(
-                    String.format(
-                            "Can't find any matched tables, please check your configured database-name: %s and table-name: %s",
-                            configuration.get(MySqlSourceOptions.DATABASE_NAME),
-                            configuration.get(MySqlSourceOptions.TABLE_NAME)));
-        }
-        return capturedTableIds;
-    }
-
     private static ChunkSplitter createChunkSplitter(
-            Configuration configuration, MySqlConnection jdbc, int chunkSize) {
-        MySqlSchema mySqlSchema = new MySqlSchema(toDebeziumConfig(configuration), jdbc);
-        return new ChunkSplitter(jdbc, mySqlSchema, chunkSize);
+            Configuration configuration, boolean isTableIdCaseSensitive, int chunkSize) {
+        MySqlSchema mySqlSchema =
+                new MySqlSchema(toDebeziumConfig(configuration), isTableIdCaseSensitive);
+        return new ChunkSplitter(mySqlSchema, configuration, chunkSize);
     }
 }

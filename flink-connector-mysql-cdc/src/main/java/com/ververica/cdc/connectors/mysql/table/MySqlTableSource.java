@@ -81,6 +81,7 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
     private final int splitSize;
     private final int fetchSize;
     private final Duration connectTimeout;
+    private final int connectionPoolSize;
     private final StartupOptions startupOptions;
 
     // --------------------------------------------------------------------------------------------
@@ -108,6 +109,7 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
             int splitSize,
             int fetchSize,
             Duration connectTimeout,
+            int connectionPoolSize,
             StartupOptions startupOptions) {
         this.physicalSchema = physicalSchema;
         this.port = port;
@@ -123,6 +125,7 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
         this.splitSize = splitSize;
         this.fetchSize = fetchSize;
         this.connectTimeout = connectTimeout;
+        this.connectionPoolSize = connectionPoolSize;
         this.startupOptions = startupOptions;
         // Mutable attributes
         this.producedDataType = physicalSchema.toPhysicalRowDataType();
@@ -219,6 +222,7 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
         properties.put(SCAN_INCREMENTAL_SNAPSHOT_CHUNK_SIZE.key(), String.valueOf(splitSize));
         properties.put(SCAN_SNAPSHOT_FETCH_SIZE.key(), String.valueOf(fetchSize));
         properties.put("connect.timeout.ms", String.valueOf(connectTimeout.toMillis()));
+        properties.put("connection.pool.size", String.valueOf(connectionPoolSize));
 
         if (database != null) {
             properties.put("database.whitelist", database);
@@ -279,6 +283,7 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
                         splitSize,
                         fetchSize,
                         connectTimeout,
+                        connectionPoolSize,
                         startupOptions);
         source.metadataKeys = metadataKeys;
         source.producedDataType = producedDataType;
@@ -308,6 +313,7 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
                 && Objects.equals(serverTimeZone, that.serverTimeZone)
                 && Objects.equals(dbzProperties, that.dbzProperties)
                 && Objects.equals(connectTimeout, that.connectTimeout)
+                && Objects.equals(connectionPoolSize, that.connectionPoolSize)
                 && Objects.equals(startupOptions, that.startupOptions)
                 && Objects.equals(producedDataType, that.producedDataType)
                 && Objects.equals(metadataKeys, that.metadataKeys);
@@ -330,6 +336,7 @@ public class MySqlTableSource implements ScanTableSource, SupportsReadingMetadat
                 splitSize,
                 fetchSize,
                 connectTimeout,
+                connectionPoolSize,
                 startupOptions,
                 producedDataType,
                 metadataKeys);

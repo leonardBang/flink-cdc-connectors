@@ -21,6 +21,7 @@ package com.ververica.cdc.connectors.mysql.debezium.task.context;
 import org.apache.flink.configuration.Configuration;
 
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
+import com.ververica.cdc.connectors.mysql.debezium.DebeziumUtils;
 import com.ververica.cdc.connectors.mysql.debezium.EmbeddedFlinkDatabaseHistory;
 import com.ververica.cdc.connectors.mysql.debezium.dispatcher.EventDispatcherImpl;
 import com.ververica.cdc.connectors.mysql.source.MySqlSourceOptions;
@@ -359,16 +360,19 @@ public class StatefulTaskContext {
     public static BinaryLogClient getBinaryClient(Configuration configuration) {
         final MySqlConnectorConfig connectorConfig =
                 new MySqlConnectorConfig(toDebeziumConfig(configuration));
-        return new BinaryLogClient(
-                connectorConfig.hostname(),
-                connectorConfig.port(),
-                connectorConfig.username(),
-                connectorConfig.password());
+
+        BinaryLogClient binaryLogClient =
+                new BinaryLogClient(
+                        connectorConfig.hostname(),
+                        connectorConfig.port(),
+                        connectorConfig.username(),
+                        connectorConfig.password());
+        LOG.info("Create MySQL BinaryLogClient {} success", binaryLogClient.toString());
+        return binaryLogClient;
     }
 
     public static MySqlConnection getConnection(Configuration configuration) {
-        return new MySqlConnection(
-                new MySqlConnection.MySqlConnectionConfiguration(toDebeziumConfig(configuration)));
+        return DebeziumUtils.openMySqlConnection(configuration);
     }
 
     public static MySqlDatabaseSchema getMySqlDatabaseSchema(
