@@ -19,6 +19,7 @@
 package com.ververica.cdc.connectors.mysql.source.connection;
 
 import com.zaxxer.hikari.HikariDataSource;
+import io.debezium.jdbc.JdbcConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,15 +41,24 @@ public class MySqlConnectionPools implements ConnectionPools {
     }
 
     @Override
-    public void registerConnectionPool(ConnectionPoolId poolId, HikariDataSource dataSource) {
-        if (pools.containsKey(poolId)) {
-            LOG.info("Register connection pool failure due to duplicated pool existed {}", poolId);
+    public void registerConnectionPool(ConnectionPoolId poolId, JdbcConfiguration configuration) {
+        synchronized (pools) {
+            if (pools.containsKey(poolId)) {
+                LOG.info(
+                        "Register connection pool failure due to duplicated pool existed {}",
+                        poolId);
+            } else {
+                HikariDataSourceFactory dataSourceFactory = new HikariDataSourceFactory();
+                HikariDataSource dataSource = dataSourceFactory.createDataSource(configuration);
+                pools.put(poolId, dataSource);
+                LOG.info("Register connection pool {}", poolId);
+            }
         }
-        pools.put(poolId, dataSource);
-        LOG.info("Register connection pool {}", poolId);
     }
 
     public HikariDataSource getConnectionPool(ConnectionPoolId poolId) {
-        return pools.get(poolId);
+        synchronized (pools) {
+            return pools.get(poolId);
+        }
     }
 }

@@ -19,11 +19,12 @@
 package com.ververica.cdc.connectors.mysql.source.connection;
 
 import com.zaxxer.hikari.HikariDataSource;
+import io.debezium.jdbc.JdbcConfiguration;
 
 /** A JDBC connection pool interface. */
 public interface ConnectionPools {
 
-    void registerConnectionPool(ConnectionPoolId poolId, HikariDataSource dataSource);
+    void registerConnectionPool(ConnectionPoolId poolId, JdbcConfiguration configuration);
 
     HikariDataSource getConnectionPool(ConnectionPoolId poolId);
 }

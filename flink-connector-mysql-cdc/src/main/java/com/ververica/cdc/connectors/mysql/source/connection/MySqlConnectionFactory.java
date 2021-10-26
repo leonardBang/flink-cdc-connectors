@@ -18,15 +18,22 @@
 
 package com.ververica.cdc.connectors.mysql.source.connection;
 
+import org.apache.flink.util.FlinkRuntimeException;
+
 import com.zaxxer.hikari.HikariDataSource;
 import io.debezium.jdbc.JdbcConfiguration;
 import io.debezium.jdbc.JdbcConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 
 /** A factory to create connection. */
 public class MySqlConnectionFactory implements JdbcConnection.ConnectionFactory {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MySqlConnectionFactory.class);
+    private static final int RETRY_TIMES = 3;
 
     @Override
     public Connection connect(JdbcConfiguration config) throws SQLException {
@@ -36,15 +43,32 @@ public class MySqlConnectionFactory implements JdbcConnection.ConnectionFactory 
                         config.getString("database.hostname"), config.getString("database.port"));
 
         if (MySqlConnectionPools.getInstance().getConnectionPool(connectionPoolId) == null) {
-            HikariDataSourceFactory dataSourceFactory = new HikariDataSourceFactory();
-
-            MySqlConnectionPools.getInstance()
-                    .registerConnectionPool(
-                            connectionPoolId, dataSourceFactory.createDataSource(config));
+            MySqlConnectionPools.getInstance().registerConnectionPool(connectionPoolId, config);
         }
 
         HikariDataSource dataSource =
                 MySqlConnectionPools.getInstance().getConnectionPool(connectionPoolId);
+
+        int i = 0;
+        while (i < RETRY_TIMES) {
+            try {
+                Connection connection = dataSource.getConnection();
+                return connection;
+            } catch (SQLException e) {
+                if (i < RETRY_TIMES - 1) {
+                    try {
+                        Thread.sleep(300);
+                    } catch (InterruptedException ie) {
+                        throw new FlinkRuntimeException(ie);
+                    }
+                    LOG.info("Get connection failed, retry times  {}", i + 1);
+                } else {
+                    LOG.info("Get connection failed after retry {} times", i + 1);
+                    throw new FlinkRuntimeException(e);
+                }
+            }
+            i++;
+        }
         return dataSource.getConnection();
     }
 }
