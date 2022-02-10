@@ -160,6 +160,7 @@ public class MySqlSnapshotSplitAssigner implements MySqlSplitAssigner {
             try (JdbcConnection jdbc = openJdbcConnection(sourceConfig)) {
                 final List<TableId> newlyAddedTables = discoverCapturedTables(jdbc, sourceConfig);
                 newlyAddedTables.removeAll(alreadyProcessedTables);
+                newlyAddedTables.removeAll(remainingTables);
                 if (!newlyAddedTables.isEmpty()) {
                     // if job is still in snapshot reading phase, directly add all newly added
                     // tables
