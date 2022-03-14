@@ -58,6 +58,7 @@ public class TiDBTableSource implements ScanTableSource, SupportsReadingMetadata
     private final String username;
     private final String password;
     private final String pdAddresses;
+    private final String serverTimeZone;
     private final StartupOptions startupOptions;
     private final Map<String, String> options;
 
@@ -79,6 +80,7 @@ public class TiDBTableSource implements ScanTableSource, SupportsReadingMetadata
             String username,
             String password,
             String pdAddresses,
+            String serverTimeZone,
             StartupOptions startupOptions,
             Map<String, String> options) {
         this.physicalSchema = physicalSchema;
@@ -88,6 +90,7 @@ public class TiDBTableSource implements ScanTableSource, SupportsReadingMetadata
         this.username = checkNotNull(username);
         this.password = checkNotNull(password);
         this.pdAddresses = checkNotNull(pdAddresses);
+        this.serverTimeZone = checkNotNull(serverTimeZone);
         this.startupOptions = startupOptions;
         this.producedDataType = physicalSchema.toPhysicalRowDataType();
         this.options = options;
@@ -113,10 +116,10 @@ public class TiDBTableSource implements ScanTableSource, SupportsReadingMetadata
             TiKVMetadataConverter[] metadataConverters = getMetadataConverters();
             RowDataTiKVSnapshotEventDeserializationSchema snapshotEventDeserializationSchema =
                     new RowDataTiKVSnapshotEventDeserializationSchema(
-                            typeInfo, tableInfo, metadataConverters);
+                            typeInfo, tableInfo, metadataConverters, serverTimeZone);
             RowDataTiKVChangeEventDeserializationSchema changeEventDeserializationSchema =
                     new RowDataTiKVChangeEventDeserializationSchema(
-                            typeInfo, tableInfo, metadataConverters);
+                            typeInfo, tableInfo, metadataConverters, serverTimeZone);
 
             TiDBSource.Builder<RowData> builder =
                     TiDBSource.<RowData>builder()
@@ -147,6 +150,7 @@ public class TiDBTableSource implements ScanTableSource, SupportsReadingMetadata
                         username,
                         password,
                         pdAddresses,
+                        serverTimeZone,
                         startupOptions,
                         options);
         source.producedDataType = producedDataType;

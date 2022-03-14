@@ -48,14 +48,19 @@ public class RowDataTiKVSnapshotEventDeserializationSchema
     /** Information of the TiKV table. * */
     private final TiTableInfo tableInfo;
 
+    /** The session time zone in database server. * */
+    private final String serverTimeZone;
+
     public RowDataTiKVSnapshotEventDeserializationSchema(
             TypeInformation<RowData> resultTypeInfo,
             TiTableInfo tableInfo,
-            TiKVMetadataConverter[] metadataConverters) {
+            TiKVMetadataConverter[] metadataConverters,
+            String serverTimeZone) {
 
         super(metadataConverters);
         this.resultTypeInfo = resultTypeInfo;
         this.tableInfo = tableInfo;
+        this.serverTimeZone = serverTimeZone;
     }
 
     @Override
@@ -66,12 +71,18 @@ public class RowDataTiKVSnapshotEventDeserializationSchema
         RowData rowData =
                 GenericRowData.ofKind(
                         RowKind.INSERT,
-                        getRowDataFields(record.getValue().toByteArray(), handle, tableInfo));
+                        getRowDataFields(
+                                record.getValue().toByteArray(),
+                                handle,
+                                tableInfo,
+                                serverTimeZone));
         emit(new TiKVMetadataConverter.TiKVRowValue(record), rowData, out);
     }
 
-    private static Object[] getRowDataFields(byte[] value, Long handle, TiTableInfo tableInfo) {
-        return getObjectsWithDataTypes(decodeObjects(value, handle, tableInfo), tableInfo);
+    private static Object[] getRowDataFields(
+            byte[] value, Long handle, TiTableInfo tableInfo, String serverTimeZone) {
+        return getObjectsWithDataTypes(
+                decodeObjects(value, handle, tableInfo), tableInfo, serverTimeZone);
     }
 
     @Override

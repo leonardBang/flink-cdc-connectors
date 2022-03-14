@@ -49,14 +49,19 @@ public class RowDataTiKVChangeEventDeserializationSchema
     /** Information of the TiKV table. * */
     private final TiTableInfo tableInfo;
 
+    /** The session time zone in database server. * */
+    private final String serverTimeZone;
+
     public RowDataTiKVChangeEventDeserializationSchema(
             TypeInformation<RowData> resultTypeInfo,
             TiTableInfo tableInfo,
-            TiKVMetadataConverter[] metadataConverters) {
+            TiKVMetadataConverter[] metadataConverters,
+            String serverTimeZone) {
 
         super(metadataConverters);
         this.resultTypeInfo = resultTypeInfo;
         this.tableInfo = tableInfo;
+        this.serverTimeZone = serverTimeZone;
     }
 
     @Override
@@ -71,7 +76,8 @@ public class RowDataTiKVChangeEventDeserializationSchema
                                 getObjectsWithDataTypes(
                                         decodeObjects(
                                                 row.getOldValue().toByteArray(), handle, tableInfo),
-                                        tableInfo));
+                                        tableInfo,
+                                        serverTimeZone));
                 emit(new TiKVMetadataConverter.TiKVRowValue(row), rowDataDelete, out);
                 break;
             case PUT:
@@ -81,14 +87,20 @@ public class RowDataTiKVChangeEventDeserializationSchema
                                 GenericRowData.ofKind(
                                         RowKind.INSERT,
                                         getRowDataFields(
-                                                row.getValue().toByteArray(), handle, tableInfo));
+                                                row.getValue().toByteArray(),
+                                                handle,
+                                                tableInfo,
+                                                serverTimeZone));
                         emit(new TiKVMetadataConverter.TiKVRowValue(row), rowDataInsert, out);
                     } else {
                         RowData rowDataUpdate =
                                 GenericRowData.ofKind(
                                         RowKind.UPDATE_AFTER,
                                         getRowDataFields(
-                                                row.getValue().toByteArray(), handle, tableInfo));
+                                                row.getValue().toByteArray(),
+                                                handle,
+                                                tableInfo,
+                                                serverTimeZone));
                         emit(new TiKVMetadataConverter.TiKVRowValue(row), rowDataUpdate, out);
                     }
                     break;
@@ -105,8 +117,10 @@ public class RowDataTiKVChangeEventDeserializationSchema
         }
     }
 
-    private static Object[] getRowDataFields(byte[] value, Long handle, TiTableInfo tableInfo) {
-        return getObjectsWithDataTypes(decodeObjects(value, handle, tableInfo), tableInfo);
+    private static Object[] getRowDataFields(
+            byte[] value, Long handle, TiTableInfo tableInfo, String serverTimeZone) {
+        return getObjectsWithDataTypes(
+                decodeObjects(value, handle, tableInfo), tableInfo, serverTimeZone);
     }
 
     @Override

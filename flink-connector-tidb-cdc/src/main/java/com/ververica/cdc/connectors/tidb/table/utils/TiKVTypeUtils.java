@@ -99,7 +99,7 @@ public class TiKVTypeUtils {
             case TypeDatetime:
                 return DataTypes.TIMESTAMP();
             case TypeTimestamp:
-                return DataTypes.TIMESTAMP_WITH_TIME_ZONE();
+                return DataTypes.STRING();
             case TypeDate:
             case TypeNewDate:
                 return DataTypes.DATE();
@@ -150,9 +150,10 @@ public class TiKVTypeUtils {
      *
      * @param object TiKV java object
      * @param dataType Flink datatype
+     * @param serverTimeZone
      */
     public static Optional<Object> getObjectWithDataType(
-            Object object, DataType dataType, DateTimeFormatter formatter) {
+            Object object, DataType dataType, DateTimeFormatter formatter, String serverTimeZone) {
         if (object == null) {
             return Optional.empty();
         }
@@ -165,11 +166,13 @@ public class TiKVTypeUtils {
                 if (object instanceof byte[]) {
                     object = new String((byte[]) object);
                 } else if (object instanceof Timestamp) {
-                    Timestamp timestamp = (Timestamp) object;
+                    LocalDateTime localDateTime =
+                            LocalDateTime.ofInstant(
+                                    ((Timestamp) object).toInstant(), ZoneId.of(serverTimeZone));
                     object =
                             formatter == null
-                                    ? timestamp.toString()
-                                    : timestamp.toLocalDateTime().format(formatter);
+                                    ? localDateTime.toString()
+                                    : localDateTime.format(formatter);
                 } else {
                     object = object.toString();
                 }
@@ -202,7 +205,11 @@ public class TiKVTypeUtils {
                 object =
                         (int)
                                 (long)
-                                        getObjectWithDataType(object, DataTypes.BIGINT(), formatter)
+                                        getObjectWithDataType(
+                                                        object,
+                                                        DataTypes.BIGINT(),
+                                                        formatter,
+                                                        serverTimeZone)
                                                 .get();
                 break;
             case "byte[]":
@@ -244,10 +251,6 @@ public class TiKVTypeUtils {
                     object = LocalTime.ofNanoOfDay(Long.parseLong(object.toString()));
                 }
                 break;
-            case "OffsetDateTime":
-                object =
-                        ((Timestamp) object).toInstant().atZone(ZoneId.of("UTC")).toLocalDateTime();
-                break;
             default:
                 object = null;
         }
@@ -255,8 +258,8 @@ public class TiKVTypeUtils {
     }
 
     public static Optional<Object> getObjectWithDataType(
-            final Object object, final DataType dataType) {
-        return getObjectWithDataType(object, dataType, null);
+            final Object object, final DataType dataType, String serverTimeZone) {
+        return getObjectWithDataType(object, dataType, null, serverTimeZone);
     }
 
     public static Object[] toObjects(final RowData row, final FieldGetter[] fieldGetters) {
@@ -275,7 +278,7 @@ public class TiKVTypeUtils {
     }
 
     public static Object[] getObjectsWithDataTypes(
-            final Object[] objects, final TiTableInfo tableInfo) {
+            final Object[] objects, final TiTableInfo tableInfo, String serverTimeZone) {
         for (int i = 0; i < objects.length; i++) {
             if (objects[i] == null) {
                 continue;
@@ -283,7 +286,9 @@ public class TiKVTypeUtils {
             org.tikv.common.types.DataType tidbType = tableInfo.getColumn(i).getType();
             DataType flinkType = getFlinkType(tidbType);
             objects[i] =
-                    toRowDataType(getObjectWithDataType(objects[i], flinkType).get(), flinkType);
+                    toRowDataType(
+                            getObjectWithDataType(objects[i], flinkType, serverTimeZone).get(),
+                            flinkType);
             if (tidbType.isUnsigned()) {
                 objects[i] = dealUnsignedColumnValue(tidbType, objects[i]);
             }
@@ -294,6 +299,8 @@ public class TiKVTypeUtils {
     /** Deal with unsigned column's value. */
     public static Object dealUnsignedColumnValue(
             org.tikv.common.types.DataType dataType, Object object) {
+        // For more information about numeric columns with unsigned, please refer link
+        // https://docs.pingcap.com/tidb/stable/data-type-numeric.
         switch (dataType.getType()) {
             case TypeTiny:
                 return Short.valueOf((short) Byte.toUnsignedInt(((Short) object).byteValue()));

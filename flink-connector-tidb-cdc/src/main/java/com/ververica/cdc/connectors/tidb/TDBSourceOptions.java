@@ -64,6 +64,12 @@ public class TDBSourceOptions {
                     .noDefaultValue()
                     .withDescription("Table name of the TiDB database to monitor.");
 
+    public static final ConfigOption<String> SERVER_TIME_ZONE =
+            ConfigOptions.key("server-time-zone")
+                    .stringType()
+                    .defaultValue("UTC")
+                    .withDescription("The session time zone in database server.");
+
     public static final ConfigOption<String> SCAN_STARTUP_MODE =
             ConfigOptions.key("scan.startup.mode")
                     .stringType()

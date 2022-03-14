@@ -74,6 +74,7 @@ public class TiDBTableSourceFactoryTest {
     private static final String MY_DATABASE = "inventory";
     private static final String MY_TABLE = "products";
     private static final String PD_ADDRESS = "pd0:2379";
+    private static final String TIMEZONE = "UTC";
     private static final Map<String, String> OPTIONS = new HashMap<>();
 
     @Test
@@ -91,6 +92,7 @@ public class TiDBTableSourceFactoryTest {
                         MY_USERNAME,
                         MY_PASSWORD,
                         PD_ADDRESS,
+                        TIMEZONE,
                         StartupOptions.latest(),
                         OPTIONS);
         assertEquals(expectedSource, actualSource);
@@ -124,6 +126,7 @@ public class TiDBTableSourceFactoryTest {
                         MY_USERNAME,
                         MY_PASSWORD,
                         PD_ADDRESS,
+                        TIMEZONE,
                         StartupOptions.latest(),
                         options);
         assertEquals(expectedSource, actualSource);
