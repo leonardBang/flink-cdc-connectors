@@ -20,6 +20,7 @@ package com.ververica.cdc.connectors.tidb.table.utils;
 
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.data.DecimalData;
+import org.apache.flink.table.data.GenericArrayData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.RowData.FieldGetter;
 import org.apache.flink.table.data.StringData;
@@ -30,9 +31,10 @@ import org.apache.flink.table.types.logical.DistinctType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.VarCharType;
 import org.apache.flink.table.types.logical.utils.LogicalTypeChecks;
-import org.apache.flink.util.Preconditions;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.tikv.common.meta.TiTableInfo;
+import org.tikv.common.types.BytesType;
 import org.tikv.common.types.StringType;
 
 import java.math.BigDecimal;
@@ -42,6 +44,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -69,7 +72,10 @@ public class TiKVTypeUtils {
         int length = (int) dataType.getLength();
         switch (dataType.getType()) {
             case TypeBit:
-                return DataTypes.BOOLEAN();
+                if (length == 1) {
+                    return DataTypes.BOOLEAN();
+                }
+                return DataTypes.BINARY(length);
             case TypeTiny:
                 if (length == 1) {
                     return DataTypes.BOOLEAN();
@@ -79,6 +85,7 @@ public class TiKVTypeUtils {
             case TypeShort:
                 return unsigned ? DataTypes.INT() : DataTypes.SMALLINT();
             case TypeInt24:
+                return DataTypes.INT();
             case TypeLong:
                 return unsigned ? DataTypes.BIGINT() : DataTypes.INT();
             case TypeLonglong:
@@ -90,8 +97,9 @@ public class TiKVTypeUtils {
             case TypeNull:
                 return DataTypes.NULL();
             case TypeDatetime:
-            case TypeTimestamp:
                 return DataTypes.TIMESTAMP();
+            case TypeTimestamp:
+                return DataTypes.TIMESTAMP_WITH_TIME_ZONE();
             case TypeDate:
             case TypeNewDate:
                 return DataTypes.DATE();
@@ -104,18 +112,26 @@ public class TiKVTypeUtils {
             case TypeString:
             case TypeVarchar:
             case TypeLongBlob:
-                Preconditions.checkArgument(
-                        dataType.getLength() <= Integer.MAX_VALUE, "Field length exceed maximum");
-                if (dataType instanceof StringType) {
-                    return DataTypes.VARCHAR((int) dataType.getLength());
+                if (length > Integer.MAX_VALUE || length == -1) {
+                    length = Integer.MAX_VALUE;
                 }
-                return DataTypes.VARBINARY((int) dataType.getLength());
+                if (dataType instanceof StringType) {
+                    return DataTypes.VARCHAR(length);
+                } else if (dataType instanceof BytesType) {
+                    return DataTypes.BINARY(length); // 2147483647
+                }
+                return DataTypes.VARBINARY(length);
             case TypeJSON:
             case TypeEnum:
-            case TypeSet:
                 return DataTypes.STRING();
+            case TypeSet:
+                return DataTypes.ARRAY(DataTypes.STRING());
             case TypeDecimal:
+                return DataTypes.DECIMAL(length, dataType.getDecimal());
             case TypeNewDecimal:
+                if (length > 38) {
+                    return DataTypes.STRING();
+                }
                 return DataTypes.DECIMAL(length, dataType.getDecimal());
             case TypeGeometry:
             default:
@@ -158,12 +174,39 @@ public class TiKVTypeUtils {
                     object = object.toString();
                 }
                 break;
+            case "String[]":
+                String[] strArray = ((String) object).split(",");
+                StringData[] stringDataArray = new StringData[strArray.length];
+                for (int i = 0; i < strArray.length; i++) {
+                    stringDataArray[i] = StringData.fromString(strArray[i]);
+                }
+                object = new GenericArrayData(stringDataArray);
+                break;
+            case "Boolean":
+                if (object instanceof byte[]) {
+                    object = BooleanUtils.toBoolean(((byte[]) object)[0]);
+                } else if (object instanceof Long) {
+                    object = BooleanUtils.toBoolean(Integer.parseInt(object.toString()));
+                }
+                break;
+            case "Byte":
+                object = Byte.valueOf(((Long) object).toString());
+                break;
+            case "Short":
+                object = Short.valueOf(((Long) object).toString());
+                break;
+            case "BigDecimal":
+                object = BigDecimal.valueOf((long) object);
+                break;
             case "Integer":
                 object =
                         (int)
                                 (long)
                                         getObjectWithDataType(object, DataTypes.BIGINT(), formatter)
                                                 .get();
+                break;
+            case "byte[]":
+                object = ((String) object).getBytes();
                 break;
             case "Long":
                 if (object instanceof LocalDate) {
@@ -201,6 +244,10 @@ public class TiKVTypeUtils {
                     object = LocalTime.ofNanoOfDay(Long.parseLong(object.toString()));
                 }
                 break;
+            case "OffsetDateTime":
+                object =
+                        ((Timestamp) object).toInstant().atZone(ZoneId.of("UTC")).toLocalDateTime();
+                break;
             default:
                 object = null;
         }
@@ -233,15 +280,38 @@ public class TiKVTypeUtils {
             if (objects[i] == null) {
                 continue;
             }
+            org.tikv.common.types.DataType tidbType = tableInfo.getColumn(i).getType();
+            DataType flinkType = getFlinkType(tidbType);
             objects[i] =
-                    toRowDataType(
-                            getObjectWithDataType(
-                                            objects[i],
-                                            getFlinkType(tableInfo.getColumn(i).getType()))
-                                    .get(),
-                            getFlinkType(tableInfo.getColumn(i).getType()));
+                    toRowDataType(getObjectWithDataType(objects[i], flinkType).get(), flinkType);
+            if (tidbType.isUnsigned()) {
+                objects[i] = dealUnsignedColumnValue(tidbType, objects[i]);
+            }
         }
         return objects;
+    }
+
+    /** Deal with unsigned column's value. */
+    public static Object dealUnsignedColumnValue(
+            org.tikv.common.types.DataType dataType, Object object) {
+        switch (dataType.getType()) {
+            case TypeTiny:
+                return Short.valueOf((short) Byte.toUnsignedInt(((Short) object).byteValue()));
+            case TypeShort:
+                return Integer.valueOf(Short.toUnsignedInt(((Integer) object).shortValue()));
+            case TypeInt24:
+                return Integer.valueOf(((int) object) & 0xffffff);
+            case TypeLong:
+                return Long.valueOf(Integer.toUnsignedLong(((Long) object).intValue()));
+            case TypeLonglong:
+                return DecimalData.fromBigDecimal(
+                        new BigDecimal(
+                                Long.toUnsignedString(((DecimalData) object).toUnscaledLong())),
+                        ((DecimalData) object).precision(),
+                        ((DecimalData) object).scale());
+            default:
+                return object;
+        }
     }
 
     /** Transform Row type to GenericRowData type. */
