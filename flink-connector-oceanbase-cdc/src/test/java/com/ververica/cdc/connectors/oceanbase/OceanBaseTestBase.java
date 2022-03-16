@@ -18,7 +18,7 @@
 
 package com.ververica.cdc.connectors.oceanbase;
 
-import org.apache.flink.test.util.AbstractTestBase;
+import org.apache.flink.util.TestLogger;
 
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionTimeoutException;
@@ -51,7 +51,7 @@ import java.util.stream.Stream;
 import static org.junit.Assert.assertNotNull;
 
 /** Basic class for testing OceanBase source. */
-public class OceanBaseTestBase extends AbstractTestBase {
+public class OceanBaseTestBase extends TestLogger {
 
     private static final Logger LOG = LoggerFactory.getLogger(OceanBaseTestBase.class);
 
