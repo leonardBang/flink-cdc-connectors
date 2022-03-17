@@ -21,16 +21,10 @@ package com.ververica.cdc.connectors.tidb.table.utils;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.data.DecimalData;
 import org.apache.flink.table.data.GenericArrayData;
-import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.RowData.FieldGetter;
 import org.apache.flink.table.data.StringData;
 import org.apache.flink.table.data.TimestampData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.DecimalType;
-import org.apache.flink.table.types.logical.DistinctType;
-import org.apache.flink.table.types.logical.LogicalType;
-import org.apache.flink.table.types.logical.VarCharType;
-import org.apache.flink.table.types.logical.utils.LogicalTypeChecks;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.tikv.common.meta.TiTableInfo;
@@ -44,9 +38,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import static java.lang.String.format;
@@ -99,7 +91,7 @@ public class TiKVTypeUtils {
             case TypeDatetime:
                 return DataTypes.TIMESTAMP();
             case TypeTimestamp:
-                return DataTypes.STRING();
+                return DataTypes.TIMESTAMP_LTZ();
             case TypeDate:
             case TypeNewDate:
                 return DataTypes.DATE();
@@ -165,14 +157,6 @@ public class TiKVTypeUtils {
             case "String":
                 if (object instanceof byte[]) {
                     object = new String((byte[]) object);
-                } else if (object instanceof Timestamp) {
-                    LocalDateTime localDateTime =
-                            LocalDateTime.ofInstant(
-                                    ((Timestamp) object).toInstant(), ZoneId.of(serverTimeZone));
-                    object =
-                            formatter == null
-                                    ? localDateTime.toString()
-                                    : localDateTime.format(formatter);
                 } else {
                     object = object.toString();
                 }
@@ -246,6 +230,11 @@ public class TiKVTypeUtils {
                     object = new Timestamp(((Long) object) / 1000).toLocalDateTime();
                 }
                 break;
+            case "Instant":
+                if (object instanceof Timestamp) {
+                    object = ((Timestamp) object).toInstant();
+                }
+                break;
             case "LocalTime":
                 if (object instanceof Long || object instanceof Integer) {
                     object = LocalTime.ofNanoOfDay(Long.parseLong(object.toString()));
@@ -260,21 +249,6 @@ public class TiKVTypeUtils {
     public static Optional<Object> getObjectWithDataType(
             final Object object, final DataType dataType, String serverTimeZone) {
         return getObjectWithDataType(object, dataType, null, serverTimeZone);
-    }
-
-    public static Object[] toObjects(final RowData row, final FieldGetter[] fieldGetters) {
-        final Object[] res = new Object[row.getArity()];
-        for (int i = 0; i < res.length; i++) {
-            res[i] = fieldGetters[i].getFieldOrNull(row);
-            if (res[i] instanceof StringData) {
-                res[i] = res[i].toString();
-            } else if (res[i] instanceof TimestampData) {
-                res[i] = ((TimestampData) res[i]).toTimestamp();
-            } else if (res[i] instanceof DecimalData) {
-                res[i] = ((DecimalData) res[i]).toBigDecimal();
-            }
-        }
-        return res;
     }
 
     public static Object[] getObjectsWithDataTypes(
@@ -300,16 +274,16 @@ public class TiKVTypeUtils {
     public static Object dealUnsignedColumnValue(
             org.tikv.common.types.DataType dataType, Object object) {
         // For more information about numeric columns with unsigned, please refer link
-        // https://docs.pingcap.com/tidb/stable/data-type-numeric.
+        // https://docs.pingcap.com/tidb/stable/data-type-numeric#integer-types
         switch (dataType.getType()) {
             case TypeTiny:
-                return Short.valueOf((short) Byte.toUnsignedInt(((Short) object).byteValue()));
+                return (short) Byte.toUnsignedInt(((Short) object).byteValue());
             case TypeShort:
-                return Integer.valueOf(Short.toUnsignedInt(((Integer) object).shortValue()));
+                return Short.toUnsignedInt(((Integer) object).shortValue());
             case TypeInt24:
-                return Integer.valueOf(((int) object) & 0xffffff);
+                return ((int) object) & 0xffffff;
             case TypeLong:
-                return Long.valueOf(Integer.toUnsignedLong(((Long) object).intValue()));
+                return Integer.toUnsignedLong(((Long) object).intValue());
             case TypeLonglong:
                 return DecimalData.fromBigDecimal(
                         new BigDecimal(
@@ -348,160 +322,13 @@ public class TiKVTypeUtils {
                 LocalTime localTime = (LocalTime) object;
                 result = (int) (localTime.toNanoOfDay() / (1000 * 1000));
                 break;
+            case "Instant":
+                result = TimestampData.fromInstant((Instant) object);
+                break;
             default:
                 // pass code style
                 break;
         }
         return result;
-    }
-
-    public static boolean isIntType(final org.tikv.common.types.DataType tp) {
-        switch (tp.getType()) {
-            case TypeBit:
-            case TypeInt24:
-            case TypeLong:
-            case TypeShort:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    public static FieldGetter createFieldGetter(final LogicalType fieldType, final int fieldPos) {
-        final FieldGetter fieldGetter;
-        // ordered by type root definition
-        switch (fieldType.getTypeRoot()) {
-            case CHAR:
-            case VARCHAR:
-                fieldGetter = row -> row.getString(fieldPos);
-                break;
-            case BOOLEAN:
-                fieldGetter = row -> row.getBoolean(fieldPos);
-                break;
-            case BINARY:
-            case VARBINARY:
-                fieldGetter = row -> row.getBinary(fieldPos);
-                break;
-            case DECIMAL:
-                final int decimalPrecision = LogicalTypeChecks.getPrecision(fieldType);
-                final int decimalScale = LogicalTypeChecks.getScale(fieldType);
-                fieldGetter = row -> row.getDecimal(fieldPos, decimalPrecision, decimalScale);
-                break;
-            case TINYINT:
-                fieldGetter = row -> row.getByte(fieldPos);
-                break;
-            case SMALLINT:
-                fieldGetter = row -> row.getShort(fieldPos);
-                break;
-            case INTEGER:
-            case TIME_WITHOUT_TIME_ZONE:
-            case INTERVAL_YEAR_MONTH:
-                fieldGetter = row -> row.getInt(fieldPos);
-                break;
-            case DATE:
-                fieldGetter =
-                        (row -> {
-                            final int days = row.getInt(fieldPos);
-                            final Instant instant = Instant.EPOCH.plus(days, ChronoUnit.DAYS);
-                            return Timestamp.from(instant);
-                        });
-                break;
-            case BIGINT:
-            case INTERVAL_DAY_TIME:
-                fieldGetter = row -> row.getLong(fieldPos);
-                break;
-            case FLOAT:
-                fieldGetter = row -> row.getFloat(fieldPos);
-                break;
-            case DOUBLE:
-                fieldGetter = row -> row.getDouble(fieldPos);
-                break;
-            case TIMESTAMP_WITHOUT_TIME_ZONE:
-            case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-                final int timestampPrecision = LogicalTypeChecks.getPrecision(fieldType);
-                fieldGetter = row -> row.getTimestamp(fieldPos, timestampPrecision);
-                break;
-            case TIMESTAMP_WITH_TIME_ZONE:
-                throw new UnsupportedOperationException();
-            case ARRAY:
-                fieldGetter = row -> row.getArray(fieldPos);
-                break;
-            case MULTISET:
-            case MAP:
-                fieldGetter = row -> row.getMap(fieldPos);
-                break;
-            case ROW:
-            case STRUCTURED_TYPE:
-                final int rowFieldCount = LogicalTypeChecks.getFieldCount(fieldType);
-                fieldGetter = row -> row.getRow(fieldPos, rowFieldCount);
-                break;
-            case DISTINCT_TYPE:
-                fieldGetter =
-                        createFieldGetter(((DistinctType) fieldType).getSourceType(), fieldPos);
-                break;
-            case RAW:
-                fieldGetter = row -> row.getRawValue(fieldPos);
-                break;
-            case NULL:
-            case SYMBOL:
-            case UNRESOLVED:
-            default:
-                throw new IllegalArgumentException();
-        }
-        if (!fieldType.isNullable()) {
-            return fieldGetter;
-        }
-        return row -> {
-            if (row.isNullAt(fieldPos)) {
-                return null;
-            }
-            return fieldGetter.getFieldOrNull(row);
-        };
-    }
-
-    public static String toMySQLTypeString(final DataType dataType) {
-        switch (dataType.getLogicalType().getTypeRoot()) {
-            case VARBINARY:
-                return toVarTypeString(dataType, "VARBINARY", "MEDIUMBLOB", "LONGBLOB");
-            case VARCHAR:
-                return toVarTypeString(dataType, "VARCHAR", "MEDIUMTEXT", "LONGTEXT");
-            case BIGINT:
-            case INTEGER:
-            case DOUBLE:
-            case FLOAT:
-            case CHAR:
-            case BOOLEAN:
-            case DECIMAL:
-            case SMALLINT:
-            case TINYINT:
-            case BINARY:
-            case DATE:
-            case TIMESTAMP_WITHOUT_TIME_ZONE:
-            case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-            case TIMESTAMP_WITH_TIME_ZONE:
-            case TIME_WITHOUT_TIME_ZONE:
-                return dataType.toString();
-            default:
-                throw new IllegalArgumentException(
-                        "Unsupported field type: " + dataType.toString());
-        }
-    }
-
-    private static String toVarTypeString(
-            final DataType dataType,
-            final String varType,
-            final String mediumType,
-            final String longType) {
-        final int length = ((VarCharType) dataType.getLogicalType()).getLength();
-        final boolean isNullable = ((VarCharType) dataType.getLogicalType()).isNullable();
-
-        if (length <= 65535) {
-            return String.format("%s(%d)", varType, Math.max(length, 0))
-                    + (isNullable ? "" : " NOT NULL");
-        } else if (length <= 16777215) {
-            return mediumType + (isNullable ? "" : " NOT NULL");
-        } else {
-            return longType + (isNullable ? "" : " NOT NULL");
-        }
     }
 }

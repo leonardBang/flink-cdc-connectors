@@ -46,8 +46,8 @@ import java.util.stream.Stream;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * A {@link DynamicTableSource} that describes how to create a TiDB binlog from a logical
- * description.
+ * A {@link DynamicTableSource} that describes how to create a TiDB change event stream from a
+ * logical description.
  */
 public class TiDBTableSource implements ScanTableSource, SupportsReadingMetadata {
 
@@ -191,9 +191,12 @@ public class TiDBTableSource implements ScanTableSource, SupportsReadingMetadata
                 && Objects.equals(username, that.username)
                 && Objects.equals(password, that.password)
                 && Objects.equals(tableName, that.tableName)
+                && Objects.equals(pdAddresses, that.pdAddresses)
+                && Objects.equals(serverTimeZone, that.serverTimeZone)
                 && Objects.equals(startupOptions, that.startupOptions)
+                && Objects.equals(options, that.options)
                 && Objects.equals(producedDataType, that.producedDataType)
-                && Objects.equals(options, that.options);
+                && Objects.equals(metadataKeys, that.metadataKeys);
     }
 
     @Override
@@ -205,9 +208,12 @@ public class TiDBTableSource implements ScanTableSource, SupportsReadingMetadata
                 username,
                 password,
                 tableName,
+                pdAddresses,
+                serverTimeZone,
                 startupOptions,
+                options,
                 producedDataType,
-                options);
+                metadataKeys);
     }
 
     @Override
