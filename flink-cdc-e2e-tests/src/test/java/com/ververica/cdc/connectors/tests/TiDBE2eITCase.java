@@ -77,61 +77,62 @@ public class TiDBE2eITCase extends FlinkContainerTestEnvironment {
     private GenericContainer<?> tikv;
     private GenericContainer<?> tidb;
 
-
     @Before
     public void before() {
         super.before();
         pd =
-            new FixedHostPortGenericContainer<>("pingcap/pd:v5.3.1")
-                .withExposedPorts(PD_PORT)
-                .withFileSystemBind("src/test/resources/docker/tidb/pd.toml", "/pd.toml")
-                .withFixedExposedPort(pdPort, PD_PORT)
-                .withCommand(
-                    "--name=pd0",
-                    "--client-urls=http://0.0.0.0:" + pdPort + ",http://0.0.0.0:2379",
-                    "--peer-urls=http://0.0.0.0:2380",
-                    "--advertise-client-urls=http://pd0:" + pdPort + ",http://pd0:2379",
-                    "--advertise-peer-urls=http://pd0:2380",
-                    "--initial-cluster=pd0=http://pd0:2380",
-                    "--data-dir=/data/pd0",
-                    "--config=/pd.toml",
-                    "--log-file=/logs/pd0.log")
-                .withNetwork(NETWORK)
-                .withNetworkMode("host")
-                .withNetworkAliases(PD_SERVICE_NAME)
-                .withStartupTimeout(Duration.ofSeconds(120))
-                .withLogConsumer(new Slf4jLogConsumer(LOG));
+                new FixedHostPortGenericContainer<>("pingcap/pd:v5.3.1")
+                        .withExposedPorts(PD_PORT)
+                        .withFileSystemBind("src/test/resources/docker/tidb/pd.toml", "/pd.toml")
+                        .withFixedExposedPort(pdPort, PD_PORT)
+                        .withCommand(
+                                "--name=pd0",
+                                "--client-urls=http://0.0.0.0:" + pdPort + ",http://0.0.0.0:2379",
+                                "--peer-urls=http://0.0.0.0:2380",
+                                "--advertise-client-urls=http://pd0:" + pdPort + ",http://pd0:2379",
+                                "--advertise-peer-urls=http://pd0:2380",
+                                "--initial-cluster=pd0=http://pd0:2380",
+                                "--data-dir=/data/pd0",
+                                "--config=/pd.toml",
+                                "--log-file=/logs/pd0.log")
+                        .withNetwork(NETWORK)
+                        .withNetworkMode("host")
+                        .withNetworkAliases(PD_SERVICE_NAME)
+                        .withStartupTimeout(Duration.ofSeconds(120))
+                        .withLogConsumer(new Slf4jLogConsumer(LOG));
 
         tikv =
-            new FixedHostPortGenericContainer<>("pingcap/tikv:v5.3.1")
-                .withFixedExposedPort(TIKV_PORT, TIKV_PORT)
-                .withFileSystemBind("src/test/resources/docker/tidb/tikv.toml", "/tikv.toml")
-                .withCommand(
-                    "--addr=0.0.0.0:20160",
-                    "--advertise-addr=tikv0:20160",
-                    "--data-dir=/data/tikv0",
-                    "--pd=pd0:2379",
-                    "--config=/tikv.toml",
-                    "--log-file=/logs/tikv0.log")
-                .withNetwork(NETWORK)
-                .dependsOn(pd)
-                .withNetworkAliases(TIKV_SERVICE_NAME)
-                .withStartupTimeout(Duration.ofSeconds(120))
-                .withLogConsumer(new Slf4jLogConsumer(LOG));
+                new FixedHostPortGenericContainer<>("pingcap/tikv:v5.3.1")
+                        .withFixedExposedPort(TIKV_PORT, TIKV_PORT)
+                        .withFileSystemBind(
+                                "src/test/resources/docker/tidb/tikv.toml", "/tikv.toml")
+                        .withCommand(
+                                "--addr=0.0.0.0:20160",
+                                "--advertise-addr=tikv0:20160",
+                                "--data-dir=/data/tikv0",
+                                "--pd=pd0:2379",
+                                "--config=/tikv.toml",
+                                "--log-file=/logs/tikv0.log")
+                        .withNetwork(NETWORK)
+                        .dependsOn(pd)
+                        .withNetworkAliases(TIKV_SERVICE_NAME)
+                        .withStartupTimeout(Duration.ofSeconds(120))
+                        .withLogConsumer(new Slf4jLogConsumer(LOG));
         tidb =
-            new FixedHostPortGenericContainer<>("pingcap/tidb:v5.3.1")
-                .withExposedPorts(TIDB_PORT)
-                .withFileSystemBind("src/test/resources/docker/tidb/tidb.toml", "/tidb.toml")
-                .withCommand(
-                    "--store=tikv",
-                    "--path=pd0:2379",
-                    "--config=/tidb.toml",
-                    "--advertise-address=tidb0")
-                .withNetwork(NETWORK)
-                .dependsOn(tikv)
-                .withNetworkAliases(TIDB_SERVICE_NAME)
-                .withStartupTimeout(Duration.ofSeconds(120))
-                .withLogConsumer(new Slf4jLogConsumer(LOG));
+                new FixedHostPortGenericContainer<>("pingcap/tidb:v5.3.1")
+                        .withExposedPorts(TIDB_PORT)
+                        .withFileSystemBind(
+                                "src/test/resources/docker/tidb/tidb.toml", "/tidb.toml")
+                        .withCommand(
+                                "--store=tikv",
+                                "--path=pd0:2379",
+                                "--config=/tidb.toml",
+                                "--advertise-address=tidb0")
+                        .withNetwork(NETWORK)
+                        .dependsOn(tikv)
+                        .withNetworkAliases(TIDB_SERVICE_NAME)
+                        .withStartupTimeout(Duration.ofSeconds(120))
+                        .withLogConsumer(new Slf4jLogConsumer(LOG));
 
         LOG.info("Starting containers...");
         Startables.deepStart(Stream.of(pd, tikv, tidb)).join();
@@ -146,10 +147,10 @@ public class TiDBE2eITCase extends FlinkContainerTestEnvironment {
             tidb.stop();
         }
         if (tikv != null) {
-            tidb.stop();
+            tikv.stop();
         }
         if (pd != null) {
-            tidb.stop();
+            pd.stop();
         }
     }
 
