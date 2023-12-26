@@ -1,0 +1,584 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>中文教程 &mdash; Flink CDC 2.0.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Downloads" href="../downloads.html" />
+    <link rel="prev" title="Tutorial" href="tutorial.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Flink CDC
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                master_doc
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About Flink CDC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../connectors/index.html">Connectors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../formats/index.html">Formats</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Tutorials</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">中文教程</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../downloads.html">Downloads</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Flink CDC</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="index.html">Tutorials</a> &raquo;</li>
+        
+      <li>中文教程</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            
+              <a href="https://github.com/ververica/flink-cdc-connectors/blob/master_doccontent/tutorials/tutorial-zh.md" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <section class="tex2jax_ignore mathjax_ignore" id="id1">
+<h1>中文教程<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<ol class="simple">
+<li><p>下载 <code class="docutils literal notranslate"><span class="pre">docker-compose.yml</span></code></p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">version</span><span class="p">:</span> <span class="s1">&#39;2.1&#39;</span>
+<span class="n">services</span><span class="p">:</span>
+  <span class="n">postgres</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">debezium</span><span class="o">/</span><span class="n">example</span><span class="o">-</span><span class="n">postgres</span><span class="p">:</span><span class="mf">1.1</span>
+    <span class="n">ports</span><span class="p">:</span>
+      <span class="o">-</span> <span class="s2">&quot;5432:5432&quot;</span>
+    <span class="n">environment</span><span class="p">:</span>
+      <span class="o">-</span> <span class="n">POSTGRES_PASSWORD</span><span class="o">=</span><span class="mi">1234</span>
+      <span class="o">-</span> <span class="n">POSTGRES_DB</span><span class="o">=</span><span class="n">postgres</span>
+      <span class="o">-</span> <span class="n">POSTGRES_USER</span><span class="o">=</span><span class="n">postgres</span>
+      <span class="o">-</span> <span class="n">POSTGRES_PASSWORD</span><span class="o">=</span><span class="n">postgres</span>
+  <span class="n">mysql</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">debezium</span><span class="o">/</span><span class="n">example</span><span class="o">-</span><span class="n">mysql</span><span class="p">:</span><span class="mf">1.1</span>
+    <span class="n">ports</span><span class="p">:</span>
+      <span class="o">-</span> <span class="s2">&quot;3306:3306&quot;</span>
+    <span class="n">environment</span><span class="p">:</span>
+      <span class="o">-</span> <span class="n">MYSQL_ROOT_PASSWORD</span><span class="o">=</span><span class="mi">123456</span>
+      <span class="o">-</span> <span class="n">MYSQL_USER</span><span class="o">=</span><span class="n">mysqluser</span>
+      <span class="o">-</span> <span class="n">MYSQL_PASSWORD</span><span class="o">=</span><span class="n">mysqlpw</span>
+  <span class="n">elasticsearch</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">elastic</span><span class="o">/</span><span class="n">elasticsearch</span><span class="p">:</span><span class="mf">7.6.0</span>
+    <span class="n">environment</span><span class="p">:</span>
+      <span class="o">-</span> <span class="n">cluster</span><span class="o">.</span><span class="n">name</span><span class="o">=</span><span class="n">docker</span><span class="o">-</span><span class="n">cluster</span>
+      <span class="o">-</span> <span class="n">bootstrap</span><span class="o">.</span><span class="n">memory_lock</span><span class="o">=</span><span class="n">true</span>
+      <span class="o">-</span> <span class="s2">&quot;ES_JAVA_OPTS=-Xms512m -Xmx512m&quot;</span>
+      <span class="o">-</span> <span class="n">discovery</span><span class="o">.</span><span class="n">type</span><span class="o">=</span><span class="n">single</span><span class="o">-</span><span class="n">node</span>
+    <span class="n">ports</span><span class="p">:</span>
+      <span class="o">-</span> <span class="s2">&quot;9200:9200&quot;</span>
+      <span class="o">-</span> <span class="s2">&quot;9300:9300&quot;</span>
+    <span class="n">ulimits</span><span class="p">:</span>
+      <span class="n">memlock</span><span class="p">:</span>
+        <span class="n">soft</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">hard</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span>
+      <span class="n">nofile</span><span class="p">:</span>
+        <span class="n">soft</span><span class="p">:</span> <span class="mi">65536</span>
+        <span class="n">hard</span><span class="p">:</span> <span class="mi">65536</span>
+  <span class="n">kibana</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">elastic</span><span class="o">/</span><span class="n">kibana</span><span class="p">:</span><span class="mf">7.6.0</span>
+    <span class="n">ports</span><span class="p">:</span>
+      <span class="o">-</span> <span class="s2">&quot;5601:5601&quot;</span>
+  <span class="n">zookeeper</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">wurstmeister</span><span class="o">/</span><span class="n">zookeeper</span><span class="p">:</span><span class="mf">3.4.6</span>
+    <span class="n">ports</span><span class="p">:</span>
+      <span class="o">-</span> <span class="s2">&quot;2181:2181&quot;</span>
+  <span class="n">kafka</span><span class="p">:</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">wurstmeister</span><span class="o">/</span><span class="n">kafka</span><span class="p">:</span><span class="mf">2.12</span><span class="o">-</span><span class="mf">2.2.1</span>
+    <span class="n">ports</span><span class="p">:</span>
+      <span class="o">-</span> <span class="s2">&quot;9092:9092&quot;</span>
+      <span class="o">-</span> <span class="s2">&quot;9094:9094&quot;</span>
+    <span class="n">depends_on</span><span class="p">:</span>
+      <span class="o">-</span> <span class="n">zookeeper</span>
+    <span class="n">environment</span><span class="p">:</span>
+      <span class="o">-</span> <span class="n">KAFKA_ADVERTISED_LISTENERS</span><span class="o">=</span><span class="n">INSIDE</span><span class="p">:</span><span class="o">//</span><span class="p">:</span><span class="mi">9094</span><span class="p">,</span><span class="n">OUTSIDE</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">9092</span>
+      <span class="o">-</span> <span class="n">KAFKA_LISTENERS</span><span class="o">=</span><span class="n">INSIDE</span><span class="p">:</span><span class="o">//</span><span class="p">:</span><span class="mi">9094</span><span class="p">,</span><span class="n">OUTSIDE</span><span class="p">:</span><span class="o">//</span><span class="p">:</span><span class="mi">9092</span>
+      <span class="o">-</span> <span class="n">KAFKA_LISTENER_SECURITY_PROTOCOL_MAP</span><span class="o">=</span><span class="n">INSIDE</span><span class="p">:</span><span class="n">PLAINTEXT</span><span class="p">,</span><span class="n">OUTSIDE</span><span class="p">:</span><span class="n">PLAINTEXT</span>
+      <span class="o">-</span> <span class="n">KAFKA_INTER_BROKER_LISTENER_NAME</span><span class="o">=</span><span class="n">INSIDE</span>
+      <span class="o">-</span> <span class="n">KAFKA_ZOOKEEPER_CONNECT</span><span class="o">=</span><span class="n">zookeeper</span><span class="p">:</span><span class="mi">2181</span>
+      <span class="o">-</span> <span class="n">KAFKA_CREATE_TOPICS</span><span class="o">=</span><span class="s2">&quot;user_behavior:1:1&quot;</span>
+    <span class="n">volumes</span><span class="p">:</span>
+      <span class="o">-</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">docker</span><span class="o">.</span><span class="n">sock</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">docker</span><span class="o">.</span><span class="n">sock</span>
+</pre></div>
+</div>
+<ol class="simple">
+<li><p>进入 mysql 容器，初始化数据：</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">exec</span> <span class="n">mysql</span> <span class="n">mysql</span> <span class="o">-</span><span class="n">uroot</span> <span class="o">-</span><span class="n">p123456</span>
+</pre></div>
+</div>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="c1">-- MySQL</span>
+<span class="k">CREATE</span> <span class="k">DATABASE</span> <span class="n">mydb</span><span class="p">;</span>
+<span class="n">USE</span> <span class="n">mydb</span><span class="p">;</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">products</span> <span class="p">(</span>
+  <span class="n">id</span> <span class="nb">INTEGER</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="n">AUTO_INCREMENT</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span>
+  <span class="n">name</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+  <span class="n">description</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">512</span><span class="p">)</span>
+<span class="p">);</span>
+<span class="k">ALTER</span> <span class="k">TABLE</span> <span class="n">products</span> <span class="n">AUTO_INCREMENT</span> <span class="o">=</span> <span class="mi">101</span><span class="p">;</span>
+
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">products</span>
+<span class="k">VALUES</span> <span class="p">(</span><span class="k">default</span><span class="p">,</span><span class="ss">&quot;scooter&quot;</span><span class="p">,</span><span class="ss">&quot;Small 2-wheel scooter&quot;</span><span class="p">),</span>
+       <span class="p">(</span><span class="k">default</span><span class="p">,</span><span class="ss">&quot;car battery&quot;</span><span class="p">,</span><span class="ss">&quot;12V car battery&quot;</span><span class="p">),</span>
+       <span class="p">(</span><span class="k">default</span><span class="p">,</span><span class="ss">&quot;12-pack drill bits&quot;</span><span class="p">,</span><span class="ss">&quot;12-pack of drill bits with sizes ranging from #40 to #3&quot;</span><span class="p">),</span>
+       <span class="p">(</span><span class="k">default</span><span class="p">,</span><span class="ss">&quot;hammer&quot;</span><span class="p">,</span><span class="ss">&quot;12oz carpenter&#39;s hammer&quot;</span><span class="p">),</span>
+       <span class="p">(</span><span class="k">default</span><span class="p">,</span><span class="ss">&quot;hammer&quot;</span><span class="p">,</span><span class="ss">&quot;14oz carpenter&#39;s hammer&quot;</span><span class="p">),</span>
+       <span class="p">(</span><span class="k">default</span><span class="p">,</span><span class="ss">&quot;hammer&quot;</span><span class="p">,</span><span class="ss">&quot;16oz carpenter&#39;s hammer&quot;</span><span class="p">),</span>
+       <span class="p">(</span><span class="k">default</span><span class="p">,</span><span class="ss">&quot;rocks&quot;</span><span class="p">,</span><span class="ss">&quot;box of assorted rocks&quot;</span><span class="p">),</span>
+       <span class="p">(</span><span class="k">default</span><span class="p">,</span><span class="ss">&quot;jacket&quot;</span><span class="p">,</span><span class="ss">&quot;water resistent black wind breaker&quot;</span><span class="p">),</span>
+       <span class="p">(</span><span class="k">default</span><span class="p">,</span><span class="ss">&quot;spare tire&quot;</span><span class="p">,</span><span class="ss">&quot;24 inch spare tire&quot;</span><span class="p">);</span>
+
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">orders</span> <span class="p">(</span>
+  <span class="n">order_id</span> <span class="nb">INTEGER</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="n">AUTO_INCREMENT</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span>
+  <span class="n">order_date</span> <span class="n">DATETIME</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+  <span class="n">customer_name</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+  <span class="n">price</span> <span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+  <span class="n">product_id</span> <span class="nb">INTEGER</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+  <span class="n">order_status</span> <span class="nb">BOOLEAN</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="c1">-- 是否下单</span>
+<span class="p">)</span> <span class="n">AUTO_INCREMENT</span> <span class="o">=</span> <span class="mi">10001</span><span class="p">;</span>
+
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">orders</span>
+<span class="k">VALUES</span> <span class="p">(</span><span class="k">default</span><span class="p">,</span> <span class="s1">&#39;2020-07-30 10:08:22&#39;</span><span class="p">,</span> <span class="s1">&#39;Jark&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">.</span><span class="mi">50</span><span class="p">,</span> <span class="mi">102</span><span class="p">,</span> <span class="k">false</span><span class="p">),</span>
+       <span class="p">(</span><span class="k">default</span><span class="p">,</span> <span class="s1">&#39;2020-07-30 10:11:09&#39;</span><span class="p">,</span> <span class="s1">&#39;Sally&#39;</span><span class="p">,</span> <span class="mi">15</span><span class="p">.</span><span class="mi">00</span><span class="p">,</span> <span class="mi">105</span><span class="p">,</span> <span class="k">false</span><span class="p">),</span>
+       <span class="p">(</span><span class="k">default</span><span class="p">,</span> <span class="s1">&#39;2020-07-30 12:00:30&#39;</span><span class="p">,</span> <span class="s1">&#39;Edward&#39;</span><span class="p">,</span> <span class="mi">25</span><span class="p">.</span><span class="mi">25</span><span class="p">,</span> <span class="mi">106</span><span class="p">,</span> <span class="k">false</span><span class="p">);</span>
+</pre></div>
+</div>
+<ol class="simple">
+<li><p>进入postgres 容器，初始化数据：</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">exec</span> <span class="n">postgres</span> <span class="n">psql</span> <span class="o">-</span><span class="n">h</span> <span class="n">localhost</span> <span class="o">-</span><span class="n">U</span> <span class="n">postgres</span>
+</pre></div>
+</div>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="c1">-- PG</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">shipments</span> <span class="p">(</span>
+  <span class="n">shipment_id</span> <span class="nb">SERIAL</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span>
+  <span class="n">order_id</span> <span class="nb">SERIAL</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+  <span class="n">origin</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+  <span class="n">destination</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+  <span class="n">is_arrived</span> <span class="nb">BOOLEAN</span> <span class="k">NOT</span> <span class="k">NULL</span>
+<span class="p">);</span>
+<span class="k">ALTER</span> <span class="n">SEQUENCE</span> <span class="k">public</span><span class="p">.</span><span class="n">shipments_shipment_id_seq</span> <span class="k">RESTART</span> <span class="k">WITH</span> <span class="mi">1001</span><span class="p">;</span>
+<span class="k">ALTER</span> <span class="k">TABLE</span> <span class="k">public</span><span class="p">.</span><span class="n">shipments</span> <span class="n">REPLICA</span> <span class="k">IDENTITY</span> <span class="k">FULL</span><span class="p">;</span>
+
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">shipments</span>
+<span class="k">VALUES</span> <span class="p">(</span><span class="k">default</span><span class="p">,</span><span class="mi">10001</span><span class="p">,</span><span class="s1">&#39;Beijing&#39;</span><span class="p">,</span><span class="s1">&#39;Shanghai&#39;</span><span class="p">,</span><span class="k">false</span><span class="p">),</span>
+       <span class="p">(</span><span class="k">default</span><span class="p">,</span><span class="mi">10002</span><span class="p">,</span><span class="s1">&#39;Hangzhou&#39;</span><span class="p">,</span><span class="s1">&#39;Shanghai&#39;</span><span class="p">,</span><span class="k">false</span><span class="p">),</span>
+       <span class="p">(</span><span class="k">default</span><span class="p">,</span><span class="mi">10003</span><span class="p">,</span><span class="s1">&#39;Shanghai&#39;</span><span class="p">,</span><span class="s1">&#39;Hangzhou&#39;</span><span class="p">,</span><span class="k">false</span><span class="p">);</span>
+</pre></div>
+</div>
+<ol class="simple">
+<li><p>下载以下 jar 包到 <code class="docutils literal notranslate"><span class="pre">&lt;FLINK_HOME&gt;/lib/</span></code>:</p></li>
+</ol>
+<ul class="simple">
+<li><p><a class="reference external" href="https://repo.maven.apache.org/maven2/org/apache/flink/flink-sql-connector-elasticsearch7_2.11/1.13.2/flink-sql-connector-elasticsearch7_2.11-1.13.2.jar">flink-sql-connector-elasticsearch7_2.11-1.13.2.jar</a></p></li>
+<li><p><a class="reference external" href="https://repo1.maven.org/maven2/com/ververica/flink-sql-connector-mysql-cdc/2.0.0/flink-sql-connector-mysql-cdc-2.0.0.jar">flink-sql-connector-mysql-cdc-2.0.0.jar</a></p></li>
+<li><p><a class="reference external" href="https://repo1.maven.org/maven2/com/ververica/flink-sql-connector-postgres-cdc/2.0.0/flink-sql-connector-postgres-cdc-2.0.0.jar">flink-sql-connector-postgres-cdc-2.0.0.jar</a></p></li>
+</ul>
+<ol class="simple">
+<li><p>然后启动 Flink 集群，再启动 SQL CLI.</p></li>
+</ol>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="c1">-- 设置checkpoint间隔3秒                     </span>
+<span class="n">Flink</span> <span class="k">SQL</span><span class="o">&gt;</span> <span class="k">SET</span> <span class="s1">&#39;execution.checkpointing.interval&#39;</span> <span class="o">=</span> <span class="s1">&#39;3s&#39;</span><span class="p">;</span>  
+
+<span class="c1">--FlinkSQL</span>
+<span class="n">Flink</span> <span class="k">SQL</span><span class="o">&gt;</span> <span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">products</span> <span class="p">(</span>
+   <span class="n">id</span> <span class="nb">INT</span><span class="p">,</span>
+   <span class="n">name</span> <span class="n">STRING</span><span class="p">,</span>
+   <span class="n">description</span> <span class="n">STRING</span><span class="p">,</span>
+   <span class="k">PRIMARY</span> <span class="k">KEY</span> <span class="p">(</span><span class="n">id</span><span class="p">)</span> <span class="k">NOT</span> <span class="n">ENFORCED</span>
+ <span class="p">)</span> <span class="k">WITH</span> <span class="p">(</span>
+   <span class="s1">&#39;connector&#39;</span> <span class="o">=</span> <span class="s1">&#39;mysql-cdc&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;hostname&#39;</span> <span class="o">=</span> <span class="s1">&#39;localhost&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;port&#39;</span> <span class="o">=</span> <span class="s1">&#39;3306&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;username&#39;</span> <span class="o">=</span> <span class="s1">&#39;root&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;password&#39;</span> <span class="o">=</span> <span class="s1">&#39;123456&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;database-name&#39;</span> <span class="o">=</span> <span class="s1">&#39;mydb&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;table-name&#39;</span> <span class="o">=</span> <span class="s1">&#39;products&#39;</span>
+ <span class="p">);</span>
+
+<span class="n">Flink</span> <span class="k">SQL</span><span class="o">&gt;</span> <span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">orders</span> <span class="p">(</span>
+   <span class="n">order_id</span> <span class="nb">INT</span><span class="p">,</span>
+   <span class="n">order_date</span> <span class="k">TIMESTAMP</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+   <span class="n">customer_name</span> <span class="n">STRING</span><span class="p">,</span>
+   <span class="n">price</span> <span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
+   <span class="n">product_id</span> <span class="nb">INT</span><span class="p">,</span>
+   <span class="n">order_status</span> <span class="nb">BOOLEAN</span><span class="p">,</span>
+   <span class="k">PRIMARY</span> <span class="k">KEY</span> <span class="p">(</span><span class="n">order_id</span><span class="p">)</span> <span class="k">NOT</span> <span class="n">ENFORCED</span>
+ <span class="p">)</span> <span class="k">WITH</span> <span class="p">(</span>
+   <span class="s1">&#39;connector&#39;</span> <span class="o">=</span> <span class="s1">&#39;mysql-cdc&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;hostname&#39;</span> <span class="o">=</span> <span class="s1">&#39;localhost&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;port&#39;</span> <span class="o">=</span> <span class="s1">&#39;3306&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;username&#39;</span> <span class="o">=</span> <span class="s1">&#39;root&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;password&#39;</span> <span class="o">=</span> <span class="s1">&#39;123456&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;database-name&#39;</span> <span class="o">=</span> <span class="s1">&#39;mydb&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;table-name&#39;</span> <span class="o">=</span> <span class="s1">&#39;orders&#39;</span>
+ <span class="p">);</span>
+
+<span class="n">Flink</span> <span class="k">SQL</span><span class="o">&gt;</span> <span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">shipments</span> <span class="p">(</span>
+   <span class="n">shipment_id</span> <span class="nb">INT</span><span class="p">,</span>
+   <span class="n">order_id</span> <span class="nb">INT</span><span class="p">,</span>
+   <span class="n">origin</span> <span class="n">STRING</span><span class="p">,</span>
+   <span class="n">destination</span> <span class="n">STRING</span><span class="p">,</span>
+   <span class="n">is_arrived</span> <span class="nb">BOOLEAN</span><span class="p">,</span>
+   <span class="k">PRIMARY</span> <span class="k">KEY</span> <span class="p">(</span><span class="n">shipment_id</span><span class="p">)</span> <span class="k">NOT</span> <span class="n">ENFORCED</span>
+ <span class="p">)</span> <span class="k">WITH</span> <span class="p">(</span>
+   <span class="s1">&#39;connector&#39;</span> <span class="o">=</span> <span class="s1">&#39;postgres-cdc&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;hostname&#39;</span> <span class="o">=</span> <span class="s1">&#39;localhost&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;port&#39;</span> <span class="o">=</span> <span class="s1">&#39;5432&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;username&#39;</span> <span class="o">=</span> <span class="s1">&#39;postgres&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;password&#39;</span> <span class="o">=</span> <span class="s1">&#39;postgres&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;database-name&#39;</span> <span class="o">=</span> <span class="s1">&#39;postgres&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;schema-name&#39;</span> <span class="o">=</span> <span class="s1">&#39;public&#39;</span><span class="p">,</span>
+   <span class="s1">&#39;table-name&#39;</span> <span class="o">=</span> <span class="s1">&#39;shipments&#39;</span>
+ <span class="p">);</span>
+
+<span class="n">Flink</span> <span class="k">SQL</span><span class="o">&gt;</span> <span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">enriched_orders</span> <span class="p">(</span>
+   <span class="n">order_id</span> <span class="nb">INT</span><span class="p">,</span>
+   <span class="n">order_date</span> <span class="k">TIMESTAMP</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+   <span class="n">customer_name</span> <span class="n">STRING</span><span class="p">,</span>
+   <span class="n">price</span> <span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
+   <span class="n">product_id</span> <span class="nb">INT</span><span class="p">,</span>
+   <span class="n">order_status</span> <span class="nb">BOOLEAN</span><span class="p">,</span>
+   <span class="n">product_name</span> <span class="n">STRING</span><span class="p">,</span>
+   <span class="n">product_description</span> <span class="n">STRING</span><span class="p">,</span>
+   <span class="n">shipment_id</span> <span class="nb">INT</span><span class="p">,</span>
+   <span class="n">origin</span> <span class="n">STRING</span><span class="p">,</span>
+   <span class="n">destination</span> <span class="n">STRING</span><span class="p">,</span>
+   <span class="n">is_arrived</span> <span class="nb">BOOLEAN</span><span class="p">,</span>
+   <span class="k">PRIMARY</span> <span class="k">KEY</span> <span class="p">(</span><span class="n">order_id</span><span class="p">)</span> <span class="k">NOT</span> <span class="n">ENFORCED</span>
+ <span class="p">)</span> <span class="k">WITH</span> <span class="p">(</span>
+     <span class="s1">&#39;connector&#39;</span> <span class="o">=</span> <span class="s1">&#39;elasticsearch-7&#39;</span><span class="p">,</span>
+     <span class="s1">&#39;hosts&#39;</span> <span class="o">=</span> <span class="s1">&#39;http://localhost:9200&#39;</span><span class="p">,</span>
+     <span class="s1">&#39;index&#39;</span> <span class="o">=</span> <span class="s1">&#39;enriched_orders&#39;</span>
+ <span class="p">);</span>
+
+<span class="n">Flink</span> <span class="k">SQL</span><span class="o">&gt;</span> <span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">enriched_orders</span>
+ <span class="k">SELECT</span> <span class="n">o</span><span class="p">.</span><span class="o">*</span><span class="p">,</span> <span class="n">p</span><span class="p">.</span><span class="n">name</span><span class="p">,</span> <span class="n">p</span><span class="p">.</span><span class="n">description</span><span class="p">,</span> <span class="n">s</span><span class="p">.</span><span class="n">shipment_id</span><span class="p">,</span> <span class="n">s</span><span class="p">.</span><span class="n">origin</span><span class="p">,</span> <span class="n">s</span><span class="p">.</span><span class="n">destination</span><span class="p">,</span> <span class="n">s</span><span class="p">.</span><span class="n">is_arrived</span>
+ <span class="k">FROM</span> <span class="n">orders</span> <span class="k">AS</span> <span class="n">o</span>
+ <span class="k">LEFT</span> <span class="k">JOIN</span> <span class="n">products</span> <span class="k">AS</span> <span class="n">p</span> <span class="k">ON</span> <span class="n">o</span><span class="p">.</span><span class="n">product_id</span> <span class="o">=</span> <span class="n">p</span><span class="p">.</span><span class="n">id</span>
+ <span class="k">LEFT</span> <span class="k">JOIN</span> <span class="n">shipments</span> <span class="k">AS</span> <span class="n">s</span> <span class="k">ON</span> <span class="n">o</span><span class="p">.</span><span class="n">order_id</span> <span class="o">=</span> <span class="n">s</span><span class="p">.</span><span class="n">order_id</span><span class="p">;</span>
+</pre></div>
+</div>
+<ol class="simple">
+<li><p>修改 mysql 和 postgres 里面的数据，观察 elasticsearch 里的结果。</p></li>
+</ol>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="c1">--MySQL</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">orders</span>
+<span class="k">VALUES</span> <span class="p">(</span><span class="k">default</span><span class="p">,</span> <span class="s1">&#39;2020-07-30 15:22:00&#39;</span><span class="p">,</span> <span class="s1">&#39;Jark&#39;</span><span class="p">,</span> <span class="mi">29</span><span class="p">.</span><span class="mi">71</span><span class="p">,</span> <span class="mi">104</span><span class="p">,</span> <span class="k">false</span><span class="p">);</span>
+
+<span class="c1">--PG</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">shipments</span>
+<span class="k">VALUES</span> <span class="p">(</span><span class="k">default</span><span class="p">,</span><span class="mi">10004</span><span class="p">,</span><span class="s1">&#39;Shanghai&#39;</span><span class="p">,</span><span class="s1">&#39;Beijing&#39;</span><span class="p">,</span><span class="k">false</span><span class="p">);</span>
+
+<span class="c1">--MySQL</span>
+<span class="k">UPDATE</span> <span class="n">orders</span> <span class="k">SET</span> <span class="n">order_status</span> <span class="o">=</span> <span class="k">true</span> <span class="k">WHERE</span> <span class="n">order_id</span> <span class="o">=</span> <span class="mi">10004</span><span class="p">;</span>
+
+<span class="c1">--PG</span>
+<span class="k">UPDATE</span> <span class="n">shipments</span> <span class="k">SET</span> <span class="n">is_arrived</span> <span class="o">=</span> <span class="k">true</span> <span class="k">WHERE</span> <span class="n">shipment_id</span> <span class="o">=</span> <span class="mi">1004</span><span class="p">;</span>
+
+<span class="c1">--MySQL</span>
+<span class="k">DELETE</span> <span class="k">FROM</span> <span class="n">orders</span> <span class="k">WHERE</span> <span class="n">order_id</span> <span class="o">=</span> <span class="mi">10004</span><span class="p">;</span>
+</pre></div>
+</div>
+<ol class="simple">
+<li><p>Kafka changelog json format</p></li>
+</ol>
+<p>在 SQL CLI 中：</p>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="c1">--Flink SQL</span>
+<span class="n">Flink</span> <span class="k">SQL</span><span class="o">&gt;</span> <span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">kafka_gmv</span> <span class="p">(</span>
+   <span class="n">day_str</span> <span class="n">STRING</span><span class="p">,</span>
+   <span class="n">gmv</span> <span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+ <span class="p">)</span> <span class="k">WITH</span> <span class="p">(</span>
+     <span class="s1">&#39;connector&#39;</span> <span class="o">=</span> <span class="s1">&#39;kafka&#39;</span><span class="p">,</span>
+     <span class="s1">&#39;topic&#39;</span> <span class="o">=</span> <span class="s1">&#39;kafka_gmv&#39;</span><span class="p">,</span>
+     <span class="s1">&#39;scan.startup.mode&#39;</span> <span class="o">=</span> <span class="s1">&#39;earliest-offset&#39;</span><span class="p">,</span>
+     <span class="s1">&#39;properties.bootstrap.servers&#39;</span> <span class="o">=</span> <span class="s1">&#39;localhost:9092&#39;</span><span class="p">,</span>
+     <span class="s1">&#39;format&#39;</span> <span class="o">=</span> <span class="s1">&#39;changelog-json&#39;</span>
+ <span class="p">);</span>
+
+<span class="n">Flink</span> <span class="k">SQL</span><span class="o">&gt;</span> <span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">kafka_gmv</span>
+ <span class="k">SELECT</span> <span class="n">DATE_FORMAT</span><span class="p">(</span><span class="n">order_date</span><span class="p">,</span> <span class="s1">&#39;yyyy-MM-dd&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">day_str</span><span class="p">,</span> <span class="k">SUM</span><span class="p">(</span><span class="n">price</span><span class="p">)</span> <span class="k">as</span> <span class="n">gmv</span>
+ <span class="k">FROM</span> <span class="n">orders</span>
+ <span class="k">WHERE</span> <span class="n">order_status</span> <span class="o">=</span> <span class="k">true</span>
+ <span class="k">GROUP</span> <span class="k">BY</span> <span class="n">DATE_FORMAT</span><span class="p">(</span><span class="n">order_date</span><span class="p">,</span> <span class="s1">&#39;yyyy-MM-dd&#39;</span><span class="p">);</span>
+
+<span class="c1">-- 读取 Kafka 的 changelog 数据，观察 materialize 后的结果</span>
+<span class="n">Flink</span> <span class="k">SQL</span><span class="o">&gt;</span> <span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">kafka_gmv</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>观察 kafka 的输出：</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">exec</span> <span class="n">kafka</span> <span class="n">bash</span> <span class="o">-</span><span class="n">c</span> <span class="s1">&#39;kafka-console-consumer.sh --topic kafka_gmv --bootstrap-server kafka:9094 --from-beginning&#39;</span>
+</pre></div>
+</div>
+<p>更新 orders 数据，观察SQL CLI 和 kafka console 的输出</p>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="c1">-- MySQL</span>
+<span class="k">UPDATE</span> <span class="n">orders</span> <span class="k">SET</span> <span class="n">order_status</span> <span class="o">=</span> <span class="k">true</span> <span class="k">WHERE</span> <span class="n">order_id</span> <span class="o">=</span> <span class="mi">10001</span><span class="p">;</span>
+<span class="k">UPDATE</span> <span class="n">orders</span> <span class="k">SET</span> <span class="n">order_status</span> <span class="o">=</span> <span class="k">true</span> <span class="k">WHERE</span> <span class="n">order_id</span> <span class="o">=</span> <span class="mi">10002</span><span class="p">;</span>
+<span class="k">UPDATE</span> <span class="n">orders</span> <span class="k">SET</span> <span class="n">order_status</span> <span class="o">=</span> <span class="k">true</span> <span class="k">WHERE</span> <span class="n">order_id</span> <span class="o">=</span> <span class="mi">10003</span><span class="p">;</span>
+
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">orders</span>
+<span class="k">VALUES</span> <span class="p">(</span><span class="k">default</span><span class="p">,</span> <span class="s1">&#39;2020-07-30 17:33:00&#39;</span><span class="p">,</span> <span class="s1">&#39;Timo&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">.</span><span class="mi">00</span><span class="p">,</span> <span class="mi">104</span><span class="p">,</span> <span class="k">true</span><span class="p">);</span>
+
+<span class="k">UPDATE</span> <span class="n">orders</span> <span class="k">SET</span> <span class="n">price</span> <span class="o">=</span> <span class="mi">40</span><span class="p">.</span><span class="mi">00</span> <span class="k">WHERE</span> <span class="n">order_id</span> <span class="o">=</span> <span class="mi">10005</span><span class="p">;</span>
+
+<span class="k">DELETE</span> <span class="k">FROM</span> <span class="n">orders</span> <span class="k">WHERE</span> <span class="n">order_id</span> <span class="o">=</span> <span class="mi">10005</span><span class="p">;</span>
+</pre></div>
+</div>
+</section>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../downloads.html" class="btn btn-neutral float-right" title="Downloads" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="tutorial.html" class="btn btn-neutral float-left" title="Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2023, ververica.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  <!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+-->
+
+
+
+  <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      <span class="fa fa-book"> Read the Docs</span>
+      version: master_doc
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+      
+      <dl>
+        <dt>Versions</dt>
+        
+          
+          <dd><a href="/flink-cdc-connectors/master/">master</a></dd>
+          
+        
+          
+          <dd><a href="/flink-cdc-connectors/master_bak/">master_bak</a></dd>
+          
+        
+          
+          <dd><a href="/flink-cdc-connectors/master_dev/">master_dev</a></dd>
+          
+        
+           <strong> 
+          <dd><a href="/flink-cdc-connectors/master_doc/">master_doc</a></dd>
+           </strong> 
+        
+          
+          <dd><a href="/flink-cdc-connectors/master_ob_zh/">master_ob_zh</a></dd>
+          
+        
+          
+          <dd><a href="/flink-cdc-connectors/release-1.4/">release-1.4</a></dd>
+          
+        
+          
+          <dd><a href="/flink-cdc-connectors/release-2.0/">release-2.0</a></dd>
+          
+        
+      </dl>
+      
+      
+      <hr/>
+      Free document hosting provided by <a href="http://www.readthedocs.org">Read the Docs</a>.
+ 
+    </div>
+  </div>
+
+ 
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
