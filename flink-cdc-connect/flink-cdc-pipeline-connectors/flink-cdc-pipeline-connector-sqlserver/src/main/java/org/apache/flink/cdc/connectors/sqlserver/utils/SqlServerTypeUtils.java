@@ -92,7 +92,10 @@ public class SqlServerTypeUtils {
                 return DataTypes.DECIMAL(DecimalType.MAX_PRECISION, DecimalType.DEFAULT_SCALE);
             case Types.CHAR:
             case Types.NCHAR:
-                return DataTypes.CHAR(precision);
+                if (precision > 0) {
+                    return DataTypes.CHAR(precision);
+                }
+                return DataTypes.STRING();
             case Types.VARCHAR:
             case Types.NVARCHAR:
             case Types.LONGVARCHAR:
@@ -139,7 +142,11 @@ public class SqlServerTypeUtils {
                         case GEOGRAPHY:
                             return DataTypes.STRING();
                         case MONEY:
+                            // SQL Server money is an 8-byte type with range
+                            // +/-922,337,203,685,477.5807, which needs DECIMAL(19, 4).
+                            return DataTypes.DECIMAL(19, 4);
                         case SMALL_MONEY:
+                            // SQL Server smallmoney fits in DECIMAL(10, 4).
                             return DataTypes.DECIMAL(10, 4);
                         case DATETIME_OFFSET:
                             return DataTypes.TIMESTAMP_LTZ(scale > 0 ? scale : 7);

@@ -60,6 +60,9 @@ public class SqlServerDataSourceOptions {
                     .noDefaultValue()
                     .withDescription(
                             "Table names of the SQL Server tables to monitor. Regular expressions are supported. "
+                                    + "Each entry must be in the 'database.schema.table' form, and all captured tables "
+                                    + "must belong to the same database. Multiple entries are separated by a comma (,), "
+                                    + "so a comma cannot be used inside a single table pattern (e.g. within a character class). "
                                     + "It is important to note that the dot (.) is treated as a delimiter for database, schema and table names. "
                                     + "If there is a need to use a dot (.) in a regular expression to match any character, "
                                     + "it is necessary to escape the dot with a backslash."

@@ -81,7 +81,13 @@ public class SqlServerPipelineRecordEmitter<T> extends IncrementalSourceRecordEm
         this.alreadySendCreateTableTables = new HashSet<>();
         this.createTableEventCache = new HashMap<>();
         this.isBounded = StartupOptions.snapshot().equals(sourceConfig.getStartupOptions());
-        generateCreateTableEvents();
+        // Only the bounded (snapshot) mode emits all CreateTableEvents at once and therefore needs
+        // the full schema set pre-fetched. For unbounded modes (initial/latest/timestamp) we build
+        // CreateTableEvents lazily per table in emitCreateTableEventIfNeeded, avoiding a full-table
+        // schema scan on every parallel reader at startup.
+        if (isBounded) {
+            generateCreateTableEvents();
+        }
     }
 
     @Override

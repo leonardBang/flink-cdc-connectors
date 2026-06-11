@@ -65,14 +65,6 @@ public class SqlServerEventDeserializer extends DebeziumEventDeserializationSche
             new FlinkJsonTableChangeSerializer();
 
     public SqlServerEventDeserializer(
-            DebeziumChangelogMode changelogMode, boolean includeSchemaChanges) {
-        super(new SqlServerSchemaDataTypeInference(), changelogMode);
-        this.includeSchemaChanges = includeSchemaChanges;
-        this.readableMetadataList = new ArrayList<>();
-        this.tableSchemaCache = new HashMap<>();
-    }
-
-    public SqlServerEventDeserializer(
             DebeziumChangelogMode changelogMode,
             boolean includeSchemaChanges,
             List<SqlServerReadableMetadata> readableMetadataList) {

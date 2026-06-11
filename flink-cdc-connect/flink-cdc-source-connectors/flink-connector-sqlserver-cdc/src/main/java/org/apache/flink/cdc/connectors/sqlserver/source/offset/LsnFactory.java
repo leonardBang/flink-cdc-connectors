@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Calendar;
 import java.util.List;
@@ -91,11 +92,13 @@ public class LsnFactory extends OffsetFactory {
         }
         final String databaseName = databaseList.get(0);
         final ZoneId serverZoneId = ZoneId.of(sourceConfig.getServerTimeZone());
-        final Timestamp startupTimestamp =
-                Timestamp.valueOf(
-                        Instant.ofEpochMilli(timestampMillis)
-                                .atZone(serverZoneId)
-                                .toLocalDateTime());
+        final LocalDateTime serverLocalDateTime =
+                Instant.ofEpochMilli(timestampMillis).atZone(serverZoneId).toLocalDateTime();
+        // Send the instant directly and let serverCalendar render the server-local wall clock for
+        // fn_cdc_map_time_to_lsn. Building the Timestamp from serverLocalDateTime (which
+        // Timestamp.valueOf interprets in the JVM default zone) and then re-applying serverCalendar
+        // would double-convert and shift the resolved LSN whenever the JVM zone != server zone.
+        final Timestamp startupTimestamp = new Timestamp(timestampMillis);
         final String mapTimeToLsnQuery =
                 String.format(MAP_TIME_TO_LSN_QUERY, SqlServerUtils.quote(databaseName));
         final Calendar serverCalendar = Calendar.getInstance(TimeZone.getTimeZone(serverZoneId));
@@ -133,7 +136,7 @@ public class LsnFactory extends OffsetFactory {
                     connection,
                     databaseName,
                     timestampMillis,
-                    startupTimestamp,
+                    serverLocalDateTime,
                     serverZoneId,
                     mappedLsn);
             return new LsnOffset(mappedLsn, mappedLsn, null);
@@ -160,7 +163,7 @@ public class LsnFactory extends OffsetFactory {
             SqlServerConnection connection,
             String databaseName,
             long timestampMillis,
-            Timestamp startupTimestamp,
+            LocalDateTime serverLocalDateTime,
             ZoneId serverZoneId,
             Lsn restartLsn) {
         try {
@@ -179,7 +182,7 @@ public class LsnFactory extends OffsetFactory {
             LOG.info(
                     "Resolved SQL Server startup timestamp {} (server time: {}) to restart LSN {} with commit time {} on database {}.",
                     timestampMillis,
-                    startupTimestamp.toLocalDateTime().atZone(serverZoneId),
+                    serverLocalDateTime.atZone(serverZoneId),
                     restartLsn,
                     restartTimestamp == null
                             ? "unknown"
@@ -189,7 +192,7 @@ public class LsnFactory extends OffsetFactory {
             LOG.info(
                     "Resolved SQL Server startup timestamp {} (server time: {}) to restart LSN {} on database {}.",
                     timestampMillis,
-                    startupTimestamp.toLocalDateTime().atZone(serverZoneId),
+                    serverLocalDateTime.atZone(serverZoneId),
                     restartLsn,
                     databaseName);
             LOG.warn(

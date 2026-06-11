@@ -55,7 +55,8 @@ class SqlServerEventDeserializerTest {
     @Test
     void testCreateAlterDropAreEmitted() throws Exception {
         SqlServerEventDeserializer deserializer =
-                new SqlServerEventDeserializer(DebeziumChangelogMode.ALL, true);
+                new SqlServerEventDeserializer(
+                        DebeziumChangelogMode.ALL, true, Collections.emptyList());
         List<Event> events = new ArrayList<>();
         TestCollector collector = new TestCollector(events);
 

@@ -68,20 +68,39 @@ public class SqlServerSchemaUtils {
     }
 
     public static void validateSqlServerAgentRunning(SqlServerSourceConfig sourceConfig) {
+        final String agentStatus;
         try (JdbcConnection jdbc =
                 getSqlServerDialect(sourceConfig).openJdbcConnection(sourceConfig)) {
-            String agentStatus =
+            agentStatus =
                     jdbc.queryAndMap(
                             SQL_SERVER_AGENT_STATUS_QUERY,
                             rs -> rs.next() ? rs.getString(1) : null);
-            if (!"Running".equalsIgnoreCase(agentStatus)) {
-                throw new ValidationException(
-                        "SQL Server Agent is not running. Please start SQL Server Agent before"
-                                + " creating the SQL Server pipeline.");
-            }
         } catch (SQLException e) {
+            // sys.dm_server_services requires VIEW SERVER STATE and is not available on some
+            // managed offerings (e.g. Azure SQL Database / Managed Instance). Treat an inability
+            // to query the status as a best-effort check and continue instead of hard-failing,
+            // since CDC may still be fully functional in those environments.
+            LOG.warn(
+                    "Skipping SQL Server Agent check: failed to query sys.dm_server_services. "
+                            + "Please make sure SQL Server Agent is running, otherwise no change "
+                            + "data will be captured.",
+                    e);
+            return;
+        }
+        if (agentStatus == null) {
+            LOG.warn(
+                    "Skipping SQL Server Agent check: sys.dm_server_services returned no Agent "
+                            + "service row. Please make sure SQL Server Agent is running, "
+                            + "otherwise no change data will be captured.");
+            return;
+        }
+        // Only hard-fail when we can positively determine the Agent is not running.
+        if (!"Running".equalsIgnoreCase(agentStatus)) {
             throw new ValidationException(
-                    "Failed to validate SQL Server Agent status from sys.dm_server_services.", e);
+                    "SQL Server Agent is not running (status: "
+                            + agentStatus
+                            + "). Please start SQL Server Agent before creating the SQL Server "
+                            + "pipeline.");
         }
     }
 

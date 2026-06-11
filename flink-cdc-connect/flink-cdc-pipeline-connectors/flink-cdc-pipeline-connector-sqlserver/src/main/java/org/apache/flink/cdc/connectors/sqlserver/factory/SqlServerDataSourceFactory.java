@@ -388,7 +388,7 @@ public class SqlServerDataSourceFactory implements DataSourceFactory {
             String currentDbName = tableNameParts[0];
 
             checkState(
-                    isValidSqlServerDbName(currentDbName),
+                    isValidSqlServerDbNameLength(currentDbName),
                     String.format(
                             "Database name '%s' exceeds SQL Server's maximum identifier length "
                                     + "of 128 characters.",
@@ -413,8 +413,11 @@ public class SqlServerDataSourceFactory implements DataSourceFactory {
         return dbName;
     }
 
-    /** Validate if the database name conforms to SQL Server naming conventions. */
-    private boolean isValidSqlServerDbName(String dbName) {
+    /**
+     * Validate that the database name is non-blank and within SQL Server's maximum identifier
+     * length of 128 characters. This only checks length, not the allowed identifier characters.
+     */
+    private boolean isValidSqlServerDbNameLength(String dbName) {
         return !StringUtils.isNullOrWhitespaceOnly(dbName) && dbName.length() <= 128;
     }
 
