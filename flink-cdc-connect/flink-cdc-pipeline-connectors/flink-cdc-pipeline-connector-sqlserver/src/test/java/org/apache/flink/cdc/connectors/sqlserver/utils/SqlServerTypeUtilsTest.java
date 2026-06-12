@@ -34,11 +34,15 @@ class SqlServerTypeUtilsTest {
     void testMoneyMapsToDecimal19Scale4() {
         assertThat(SqlServerTypeUtils.fromDbzColumn(column(Types.OTHER, "money", 0, null)))
                 .isEqualTo(DataTypes.DECIMAL(19, 4));
+        assertThat(SqlServerTypeUtils.fromDbzColumn(column(Types.DECIMAL, "money", 19, 4)))
+                .isEqualTo(DataTypes.DECIMAL(19, 4));
     }
 
     @Test
     void testSmallMoneyMapsToDecimal10Scale4() {
         assertThat(SqlServerTypeUtils.fromDbzColumn(column(Types.OTHER, "smallmoney", 0, null)))
+                .isEqualTo(DataTypes.DECIMAL(10, 4));
+        assertThat(SqlServerTypeUtils.fromDbzColumn(column(Types.DECIMAL, "smallmoney", 10, 4)))
                 .isEqualTo(DataTypes.DECIMAL(10, 4));
     }
 
@@ -64,7 +68,9 @@ class SqlServerTypeUtilsTest {
     void testDatetime2MapsToTimestamp() {
         assertThat(SqlServerTypeUtils.fromDbzColumn(column(Types.OTHER, "datetime2", 0, null)))
                 .isEqualTo(DataTypes.TIMESTAMP(7));
-        assertThat(SqlServerTypeUtils.fromDbzColumn(column(Types.OTHER, "datetime2", 0, 3)))
+        assertThat(SqlServerTypeUtils.fromDbzColumn(column(Types.TIMESTAMP, "datetime2", 0, 0)))
+                .isEqualTo(DataTypes.TIMESTAMP(0));
+        assertThat(SqlServerTypeUtils.fromDbzColumn(column(Types.TIMESTAMP, "datetime2", 0, 3)))
                 .isEqualTo(DataTypes.TIMESTAMP(3));
     }
 
@@ -72,11 +78,17 @@ class SqlServerTypeUtilsTest {
     void testDatetimeMapsToTimestamp3() {
         assertThat(SqlServerTypeUtils.fromDbzColumn(column(Types.OTHER, "datetime", 0, null)))
                 .isEqualTo(DataTypes.TIMESTAMP(3));
+        assertThat(SqlServerTypeUtils.fromDbzColumn(column(Types.TIMESTAMP, "datetime", 0, null)))
+                .isEqualTo(DataTypes.TIMESTAMP(3));
     }
 
     @Test
     void testSmallDatetimeMapsToTimestamp0() {
         assertThat(SqlServerTypeUtils.fromDbzColumn(column(Types.OTHER, "smalldatetime", 0, null)))
+                .isEqualTo(DataTypes.TIMESTAMP(0));
+        assertThat(
+                        SqlServerTypeUtils.fromDbzColumn(
+                                column(Types.TIMESTAMP, "smalldatetime", 0, null)))
                 .isEqualTo(DataTypes.TIMESTAMP(0));
     }
 
@@ -84,6 +96,26 @@ class SqlServerTypeUtilsTest {
     void testDatetimeOffsetMapsToTimestampLtz() {
         assertThat(SqlServerTypeUtils.fromDbzColumn(column(Types.OTHER, "datetimeoffset", 0, null)))
                 .isEqualTo(DataTypes.TIMESTAMP_LTZ(7));
+        assertThat(
+                        SqlServerTypeUtils.fromDbzColumn(
+                                column(Types.TIMESTAMP_WITH_TIMEZONE, "datetimeoffset", 0, 0)))
+                .isEqualTo(DataTypes.TIMESTAMP_LTZ(0));
+        assertThat(
+                        SqlServerTypeUtils.fromDbzColumn(
+                                column(Types.TIMESTAMP_WITH_TIMEZONE, "datetimeoffset", 0, 3)))
+                .isEqualTo(DataTypes.TIMESTAMP_LTZ(3));
+    }
+
+    @Test
+    void testGenericTimestampPreservesExplicitScale0() {
+        assertThat(
+                        SqlServerTypeUtils.fromDbzColumn(
+                                column(Types.TIMESTAMP, "generic_timestamp", 0, 0)))
+                .isEqualTo(DataTypes.TIMESTAMP(0));
+        assertThat(
+                        SqlServerTypeUtils.fromDbzColumn(
+                                column(Types.TIMESTAMP_WITH_TIMEZONE, "generic_timestamp", 0, 0)))
+                .isEqualTo(DataTypes.TIMESTAMP_LTZ(0));
     }
 
     @Test

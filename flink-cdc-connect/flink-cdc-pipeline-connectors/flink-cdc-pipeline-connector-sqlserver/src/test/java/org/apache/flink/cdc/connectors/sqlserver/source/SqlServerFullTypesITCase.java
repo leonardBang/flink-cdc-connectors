@@ -118,8 +118,8 @@ public class SqlServerFullTypesITCase extends SqlServerTestBase {
                     DecimalData.fromBigDecimal(new BigDecimal("9876543.21"), 10, 2),
                     3.14159265358979d,
                     2.71828f,
-                    DecimalData.fromBigDecimal(new BigDecimal("214748.3647"), 18, 4),
-                    DecimalData.fromBigDecimal(new BigDecimal("130567005.7988"), 18, 4),
+                    DecimalData.fromBigDecimal(new BigDecimal("214748.3647"), 10, 4),
+                    DecimalData.fromBigDecimal(new BigDecimal("130567005.7988"), 19, 4),
                     // Boolean and integer types
                     true,
                     (short) 255,
@@ -258,7 +258,7 @@ public class SqlServerFullTypesITCase extends SqlServerTestBase {
                     3.141592653589793d,
                     2.7182818f,
                     DecimalData.fromBigDecimal(new BigDecimal("54975581.3896"), 19, 4),
-                    DecimalData.fromBigDecimal(new BigDecimal("214748.3647"), 19, 4)
+                    DecimalData.fromBigDecimal(new BigDecimal("214748.3647"), 10, 4)
                 };
 
         Object[] actualSnapshot = recordFields(snapshotRecord, PRECISION_TYPES);
@@ -336,8 +336,8 @@ public class SqlServerFullTypesITCase extends SqlServerTestBase {
                     DataTypes.DECIMAL(10, 2),
                     DataTypes.DOUBLE(),
                     DataTypes.FLOAT(),
-                    DataTypes.DECIMAL(18, 4), // smallmoney - use precision 18 for compact storage
-                    DataTypes.DECIMAL(18, 4), // money - use precision 18 for compact storage
+                    DataTypes.DECIMAL(10, 4), // smallmoney
+                    DataTypes.DECIMAL(19, 4), // money
                     // Boolean and integer types
                     DataTypes.BOOLEAN(),
                     DataTypes.SMALLINT(),
@@ -385,6 +385,6 @@ public class SqlServerFullTypesITCase extends SqlServerTestBase {
                     DataTypes.DECIMAL(10, 4),
                     DataTypes.DOUBLE(),
                     DataTypes.FLOAT(),
-                    DataTypes.DECIMAL(18, 4), // money - use precision 18 for compact storage
-                    DataTypes.DECIMAL(18, 4)); // smallmoney - use precision 18 for compact storage
+                    DataTypes.DECIMAL(19, 4), // money
+                    DataTypes.DECIMAL(10, 4)); // smallmoney
 }

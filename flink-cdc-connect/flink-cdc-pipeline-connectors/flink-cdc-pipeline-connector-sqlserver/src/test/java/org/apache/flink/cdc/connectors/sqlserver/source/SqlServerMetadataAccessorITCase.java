@@ -167,14 +167,14 @@ public class SqlServerMetadataAccessorITCase extends SqlServerTestBase {
                                             DataTypes.TIME(0),
                                             DataTypes.TIME(3),
                                             DataTypes.TIME(6),
-                                            DataTypes.TIMESTAMP(6),
+                                            DataTypes.TIMESTAMP(0),
                                             DataTypes.TIMESTAMP(3),
                                             DataTypes.TIMESTAMP(6),
-                                            DataTypes.TIMESTAMP_LTZ(7),
+                                            DataTypes.TIMESTAMP_LTZ(0),
                                             DataTypes.TIMESTAMP_LTZ(3),
                                             DataTypes.TIMESTAMP_LTZ(6),
                                             DataTypes.TIMESTAMP(3),
-                                            DataTypes.TIMESTAMP(6)
+                                            DataTypes.TIMESTAMP(0)
                                         },
                                         new String[] {
                                             "id",

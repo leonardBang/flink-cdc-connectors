@@ -59,14 +59,15 @@ public class SqlServerDataSourceOptions {
                     .stringType()
                     .noDefaultValue()
                     .withDescription(
-                            "Table names of the SQL Server tables to monitor. Regular expressions are supported. "
-                                    + "Each entry must be in the 'database.schema.table' form, and all captured tables "
-                                    + "must belong to the same database. Multiple entries are separated by a comma (,), "
-                                    + "so a comma cannot be used inside a single table pattern (e.g. within a character class). "
+                            "Table names of the SQL Server tables to monitor. Each entry must be in "
+                                    + "the 'database.schema.table' form, and all captured tables must belong "
+                                    + "to the same literal database. Regular expressions are supported for "
+                                    + "schema and table names. Multiple entries are separated by a comma (,); "
+                                    + "escape a comma with a backslash when it is part of a regular expression. "
                                     + "It is important to note that the dot (.) is treated as a delimiter for database, schema and table names. "
                                     + "If there is a need to use a dot (.) in a regular expression to match any character, "
-                                    + "it is necessary to escape the dot with a backslash."
-                                    + "eg. db0.dbo.\\.*, db1.dbo.user_table_[0-9]+, db[1-2].dbo.[app|web]_order_\\.*");
+                                    + "it is necessary to escape the dot with a backslash. "
+                                    + "eg. db0.dbo.\\.*, db0.dbo.user_table_[0-9]+, db0.dbo.(app|web)_order_\\.*");
 
     public static final ConfigOption<String> SERVER_TIME_ZONE =
             ConfigOptions.key("server-time-zone")
@@ -202,11 +203,13 @@ public class SqlServerDataSourceOptions {
                     .stringType()
                     .noDefaultValue()
                     .withDescription(
-                            "Table names of the SQL Server tables to Exclude. Regular expressions are supported. "
+                            "Table names of the SQL Server tables to exclude. Each entry must be in "
+                                    + "the 'database.schema.table' form and use the same literal database as 'tables'. "
+                                    + "Regular expressions are supported for schema and table names. "
                                     + "It is important to note that the dot (.) is treated as a delimiter for database, schema and table names. "
                                     + "If there is a need to use a dot (.) in a regular expression to match any character, "
-                                    + "it is necessary to escape the dot with a backslash."
-                                    + "eg. db0.dbo.\\.*, db1.dbo.user_table_[0-9]+, db[1-2].dbo.[app|web]_order_\\.*");
+                                    + "it is necessary to escape the dot with a backslash. "
+                                    + "eg. db0.dbo.\\.*, db0.dbo.user_table_[0-9]+, db0.dbo.(app|web)_order_\\.*");
 
     @Experimental
     public static final ConfigOption<String> METADATA_LIST =

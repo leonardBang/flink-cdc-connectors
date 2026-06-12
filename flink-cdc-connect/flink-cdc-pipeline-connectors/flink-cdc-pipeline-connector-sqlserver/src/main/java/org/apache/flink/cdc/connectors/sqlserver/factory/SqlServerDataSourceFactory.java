@@ -26,6 +26,7 @@ import org.apache.flink.cdc.common.factories.Factory;
 import org.apache.flink.cdc.common.factories.FactoryHelper;
 import org.apache.flink.cdc.common.schema.Selectors;
 import org.apache.flink.cdc.common.source.DataSource;
+import org.apache.flink.cdc.common.utils.Predicates;
 import org.apache.flink.cdc.common.utils.StringUtils;
 import org.apache.flink.cdc.connectors.base.options.SourceOptions;
 import org.apache.flink.cdc.connectors.base.options.StartupOptions;
@@ -372,12 +373,12 @@ public class SqlServerDataSourceFactory implements DataSourceFactory {
             throw new IllegalArgumentException("Parameter tables cannot be null or empty");
         }
 
-        String[] tableNames = tables.split(",");
+        String[] tableNames = Predicates.RegExSplitterByComma.split(tables);
         String dbName = null;
 
         for (String tableName : tableNames) {
             String trimmedTableName = tableName.trim();
-            String[] tableNameParts = trimmedTableName.split("(?<!\\\\)\\.", -1);
+            String[] tableNameParts = Predicates.RegExSplitterByDot.split(trimmedTableName);
 
             checkState(
                     tableNameParts.length == 3,

@@ -64,6 +64,37 @@ public class SqlServerTypeUtils {
     private static DataType convertFromColumn(Column column) {
         int precision = column.length();
         int scale = column.scale().orElse(0);
+        String typeName = column.typeName();
+        if (typeName != null) {
+            switch (typeName.toLowerCase()) {
+                case UNIQUE_IDENTIFIER:
+                case XML:
+                case SQL_VARIANT:
+                case HIERARCHY_ID:
+                case GEOMETRY:
+                case GEOGRAPHY:
+                    return DataTypes.STRING();
+                case MONEY:
+                    return DataTypes.DECIMAL(19, 4);
+                case SMALL_MONEY:
+                    return DataTypes.DECIMAL(10, 4);
+                case DATETIME_OFFSET:
+                    return DataTypes.TIMESTAMP_LTZ(column.scale().orElse(7));
+                case DATETIME2:
+                    return DataTypes.TIMESTAMP(column.scale().orElse(7));
+                case DATETIME:
+                    return DataTypes.TIMESTAMP(3);
+                case SMALL_DATETIME:
+                    return DataTypes.TIMESTAMP(0);
+                case IMAGE:
+                case TIMESTAMP:
+                case ROW_VERSION:
+                    return DataTypes.BYTES();
+                case TEXT:
+                case N_TEXT:
+                    return DataTypes.STRING();
+            }
+        }
 
         switch (column.jdbcType()) {
             case Types.BIT:
@@ -118,55 +149,12 @@ public class SqlServerTypeUtils {
             case Types.TIME_WITH_TIMEZONE:
                 return DataTypes.TIME(Math.max(scale, 0));
             case Types.TIMESTAMP:
-                return DataTypes.TIMESTAMP(scale > 0 ? scale : 6);
+                return DataTypes.TIMESTAMP(column.scale().orElse(6));
             case Types.TIMESTAMP_WITH_TIMEZONE:
-                return DataTypes.TIMESTAMP_LTZ(scale > 0 ? scale : 6);
+                return DataTypes.TIMESTAMP_LTZ(column.scale().orElse(6));
             case Types.STRUCT:
-                // SQL Server specific types like unique identifier, xml, etc.
-                String typeName = column.typeName();
-                if (UNIQUE_IDENTIFIER.equalsIgnoreCase(typeName)) {
-                    return DataTypes.STRING();
-                }
                 return DataTypes.STRING();
             default:
-                // For unknown types, try to handle them as STRING
-                String unknownTypeName = column.typeName();
-                if (unknownTypeName != null) {
-                    // Handle SQL Server specific types
-                    switch (unknownTypeName.toLowerCase()) {
-                        case UNIQUE_IDENTIFIER:
-                        case XML:
-                        case SQL_VARIANT:
-                        case HIERARCHY_ID:
-                        case GEOMETRY:
-                        case GEOGRAPHY:
-                            return DataTypes.STRING();
-                        case MONEY:
-                            // SQL Server money is an 8-byte type with range
-                            // +/-922,337,203,685,477.5807, which needs DECIMAL(19, 4).
-                            return DataTypes.DECIMAL(19, 4);
-                        case SMALL_MONEY:
-                            // SQL Server smallmoney fits in DECIMAL(10, 4).
-                            return DataTypes.DECIMAL(10, 4);
-                        case DATETIME_OFFSET:
-                            return DataTypes.TIMESTAMP_LTZ(scale > 0 ? scale : 7);
-                        case DATETIME2:
-                            return DataTypes.TIMESTAMP(scale > 0 ? scale : 7);
-                        case DATETIME:
-                            return DataTypes.TIMESTAMP(3);
-                        case SMALL_DATETIME:
-                            return DataTypes.TIMESTAMP(0);
-                        case IMAGE:
-                        case TIMESTAMP:
-                        case ROW_VERSION:
-                            return DataTypes.BYTES();
-                        case TEXT:
-                        case N_TEXT:
-                            return DataTypes.STRING();
-                        default:
-                            // Fall through to exception
-                    }
-                }
                 throw new UnsupportedOperationException(
                         String.format(
                                 "Doesn't support SQL Server type '%s', JDBC type '%d' yet.",
