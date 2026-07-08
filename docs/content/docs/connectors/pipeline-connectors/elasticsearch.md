@@ -286,4 +286,124 @@ Elasticsearch stores document in a JSON string. So the data type mapping is betw
 </table>
 </div>
 
+Elasticsearch Pipeline Source (POC)
+-----------------------------------
+
+The Elasticsearch Pipeline connector also contains a query-based *Data Source* POC. It reads an
+initial snapshot with Elasticsearch PIT + `search_after`, then keeps polling documents whose
+configured incremental field is greater than the last checkpointed cursor.
+
+> Note: this is not a native Elasticsearch CDC stream. Elasticsearch hard deletes cannot be captured
+> by this source. For delete propagation, use a soft-delete field or write delete events to a
+> separate audit stream.
+
+Example:
+
+```yaml
+source:
+  type: elasticsearch
+  name: Elasticsearch Source
+  hosts: http://127.0.0.1:9200
+  indices: users,orders
+  scan.incremental.field: updated_at
+  scan.tiebreaker.field: id
+  id.column: id
+  soft-delete.field: __deleted
+  scan.page.size: 1000
+  scan.poll.interval: 10s
+  scan.pit.keep-alive: 1min
+
+sink:
+  type: fluss
+  bootstrap.servers: 127.0.0.1:9123
+```
+
+### Source Options
+
+<div class="highlight">
+<table class="colwidths-auto docutils">
+   <thead>
+      <tr>
+        <th class="text-left" style="width: 25%">Option</th>
+        <th class="text-left" style="width: 8%">Required</th>
+        <th class="text-left" style="width: 7%">Default</th>
+        <th class="text-left" style="width: 10%">Type</th>
+        <th class="text-left" style="width: 50%">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td>hosts</td>
+      <td>required</td>
+      <td style="word-wrap: break-word;">(none)</td>
+      <td>String</td>
+      <td>Comma-separated Elasticsearch hosts, for example <code>http://host:9200</code>.</td>
+    </tr>
+    <tr>
+      <td>indices</td>
+      <td>required</td>
+      <td style="word-wrap: break-word;">(none)</td>
+      <td>String</td>
+      <td>Comma-separated Elasticsearch indices to read.</td>
+    </tr>
+    <tr>
+      <td>scan.incremental.field</td>
+      <td>required</td>
+      <td style="word-wrap: break-word;">(none)</td>
+      <td>String</td>
+      <td>Document field used as the incremental cursor. It must be updated for every insert/update/soft-delete and must have doc values enabled for sorting.</td>
+    </tr>
+    <tr>
+      <td>scan.tiebreaker.field</td>
+      <td>optional</td>
+      <td style="word-wrap: break-word;">(none)</td>
+      <td>String</td>
+      <td>Stable unique field used with the incremental field for deterministic checkpoint restore, for example an id copy field.</td>
+    </tr>
+    <tr>
+      <td>id.column</td>
+      <td>optional</td>
+      <td style="word-wrap: break-word;">_id</td>
+      <td>String</td>
+      <td>Output column that stores the Elasticsearch document id and acts as the pipeline primary key.</td>
+    </tr>
+    <tr>
+      <td>soft-delete.field</td>
+      <td>optional</td>
+      <td style="word-wrap: break-word;">(none)</td>
+      <td>String</td>
+      <td>Boolean field. When true, the source emits a DELETE event.</td>
+    </tr>
+    <tr>
+      <td>scan.page.size</td>
+      <td>optional</td>
+      <td style="word-wrap: break-word;">1000</td>
+      <td>Integer</td>
+      <td>Number of documents fetched per search request.</td>
+    </tr>
+    <tr>
+      <td>scan.poll.interval</td>
+      <td>optional</td>
+      <td style="word-wrap: break-word;">10s</td>
+      <td>Duration</td>
+      <td>Interval between incremental polling rounds when no new document is found.</td>
+    </tr>
+    <tr>
+      <td>scan.pit.keep-alive</td>
+      <td>optional</td>
+      <td style="word-wrap: break-word;">1min</td>
+      <td>Duration</td>
+      <td>Elasticsearch point-in-time keep-alive.</td>
+    </tr>
+    <tr>
+      <td>scan.snapshot.enabled</td>
+      <td>optional</td>
+      <td style="word-wrap: break-word;">true</td>
+      <td>Boolean</td>
+      <td>Whether to emit an initial snapshot before incremental polling.</td>
+    </tr>
+    </tbody>
+</table>
+</div>
+
 {{< top >}}
